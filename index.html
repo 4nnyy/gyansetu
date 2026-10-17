@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#141518">
+  <meta name="gyansetu-ui-version" content="8.2.5">
+<title>GyanSetu — Understand more</title>
+<link rel="icon" type="image/png" href="/assets/logo.png">
+<script>
+window.MathJax = {
+  startup: { typeset: false },
+  loader: { load: ['ui/safe'] },
+  tex: { packages: ['base', 'ams'], inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$', '$$']] },
+  options: { ignoreHtmlClass: 'msg', processHtmlClass: 'answer-math',
+    safeOptions: { allow: { URLs: 'none', classes: 'none', cssIDs: 'none', styles: 'none' } } }
+};
+</script>
+
+
+
+
+
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+
+<div class="hero" id="appHeader">
+  <div class="hero-inner">
+    <div class="brand-row">
+      <button class="session-toggle header-icon" id="sessionToggle" type="button" aria-controls="sessionsWrap" aria-expanded="false" aria-label="Open chats" title="Chats">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h12M4 18h16"/></svg>
+      </button>
+      <span class="brand-mark">
+        <img src="/assets/logo.png" alt="GyanSetu logo">
+      </span>
+      <h1>GyanSetu</h1>
+    </div>
+    <div class="header-tools">
+      <button class="header-icon quick-new-chat" id="quickNewChatBtn" type="button" aria-label="New chat" title="New chat"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+      <details class="learner-settings" id="learnerSettings">
+        <summary id="preferencesToggle" aria-label="Learning preferences" title="Learning preferences"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span class="preferences-label">Preferences</span></summary>
+        <div class="preferences-panel">
+          <div class="preferences-head"><h2>Learning preferences</h2><button class="header-icon" id="preferencesClose" type="button" aria-label="Close preferences">×</button></div>
+          <p class="preferences-caption">Adjust explanations to suit your course.</p>
+          <div class="learner-fields">
+            <label for="replyLanguage">Reply language
+              <select id="replyLanguage"><option value="auto">Match my question</option><option value="hinglish">Hinglish · Roman Hindi</option><option value="en">English</option><option value="hi">हिन्दी</option></select>
+            </label>
+            <label for="learnerLevel">Explanation depth
+              <select id="learnerLevel"><option value="beginner">Step by step</option><option value="familiar">Focused explanation</option></select>
+            </label>
+            <label for="learnerCourse">Class or semester <span class="optional-label">Optional</span>
+              <input id="learnerCourse" type="text" maxlength="80" placeholder="e.g. Class 10 or B.Tech, Semester 1" autocomplete="off">
+            </label>
+          </div>
+          <p class="preferences-saved" id="learnerSummary">Preferences saved on this device</p>
+          <button class="answer-action guide-replay" id="quickGuideBtn" type="button">Quick guide</button>
+        </div>
+      </details>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="appRoot">
+  <div class="layout">
+    <aside class="side-panel">
+      <div class="sessions-section">
+        <div class="session-backdrop" id="sessionBackdrop" hidden aria-hidden="true"></div>
+        <div class="sessions-wrap" id="sessionsWrap" aria-labelledby="chatsHeading">
+          <div class="session-header-row">
+            <p class="panel-label" id="chatsHeading">Your chats</p>
+            <button class="session-close" id="sessionClose" type="button" aria-label="Close chats">×</button>
+          </div>
+          <div class="session-tools"><button class="new-chat-btn" id="newChatBtn" type="button">+ New chat</button></div>
+          <div class="session-list" id="sessionList"></div>
+          <details class="subjects-section" id="subjectsSection">
+            <summary id="subjectPickerToggle"><span class="subject-label">Subject</span><span id="currentSubjectLabel">All subjects</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+            <div class="subjects" id="subjects" role="group" aria-label="Choose a subject">
+              <button class="chip active" data-subject="General">All subjects</button>
+              <button class="chip" data-subject="Mathematics">Mathematics</button>
+              <button class="chip" data-subject="Physics">Physics</button>
+              <button class="chip" data-subject="Chemistry">Chemistry</button>
+              <button class="chip" data-subject="Programming">Programming</button>
+            </div>
+          </details>
+        </div>
+      </div>
+    </aside>
+
+    <main class="chat-panel" id="chatPanel">
+    <div class="chat-card">
+    <div class="messages" id="messages" role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions" tabindex="0">
+      <section class="empty-state" id="emptyState" aria-labelledby="welcomeTitle">
+        <h2 id="welcomeTitle">What would you like<br>to <span>understand?</span></h2>
+        <p class="welcome-description">Ask a question or share a photo of your notes.</p>
+        <div class="suggestions-section" id="suggestionsSection"><div class="suggestions" id="suggestions" aria-label="Example questions"></div></div>
+      </section>
+    </div>
+
+    <div class="preview-row" id="previewRow">
+      <button class="photo-preview-button" id="previewOpen" type="button" aria-label="Preview attached photo"><img class="preview-thumb" id="previewThumb" src="" alt="Attached question"></button>
+      <span class="preview-label">Photo attached · tap to preview</span>
+      <button class="preview-remove" id="previewRemove" type="button" title="Remove photo" aria-label="Remove photo">&times;</button>
+    </div>
+
+    <div class="app-notice" id="appNotice" role="status" hidden></div>
+    <div class="mode-row">
+      <div class="mode-switch" role="group" aria-label="Response style">
+        <button class="mode-btn active" id="learnModeBtn" type="button" aria-pressed="true" title="Explore the concept step by step">Learn</button>
+        <button class="mode-btn" id="examModeBtn" type="button" aria-pressed="false" title="Get a concise, exam-style answer">Exam</button>
+      </div>
+      <span class="mode-label" id="modeHint">Understand the concept</span>
+    </div>
+    <div class="input-row">
+      <details class="attach-menu" id="attachMenu">
+      <summary class="icon-btn" id="attachMenuToggle" aria-label="Add a photo" title="Add a photo"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></summary>
+      <div class="attach-options">
+      <button class="icon-btn" id="attachBtn" title="Upload photo" aria-label="Upload photo" type="button">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21.44 11.05L12.25 20.24C10.07 22.42 6.53 22.42 4.34 20.24C2.16 18.05 2.16 14.5 4.34 12.32L13.53 3.13C14.99 1.67 17.35 1.67 18.81 3.13C20.27 4.6 20.27 6.96 18.81 8.42L10.13 17.11C9.4 17.84 8.22 17.84 7.49 17.11C6.75 16.38 6.75 15.19 7.49 14.46L15.5 6.45" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Upload photo</span>
+      </button>
+      <button class="icon-btn camera-btn" id="cameraBtn" title="Take photo" aria-label="Take photo" type="button">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 7.5C4 6.67 4.67 6 5.5 6H8L9.4 4H14.6L16 6H18.5C19.33 6 20 6.67 20 7.5V17.5C20 18.33 19.33 19 18.5 19H5.5C4.67 19 4 18.33 4 17.5V7.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+          <circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.7"/>
+        </svg>
+        <span>Take photo</span>
+      </button>
+      </div>
+      </details>
+      <input type="file" id="fileInput" accept="image/*" class="visually-hidden-file" tabindex="-1">
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" class="visually-hidden-file" tabindex="-1">
+      <textarea id="input" aria-label="Your question" rows="1" placeholder="Ask anything…"></textarea>
+      <button class="icon-btn mic" id="micBtn" aria-label="Voice input" title="Voice input" type="button">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 15C13.66 15 15 13.66 15 12V6C15 4.34 13.66 3 12 3C10.34 3 9 4.34 9 6V12C9 13.66 10.34 15 12 15Z" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M19 11V12C19 15.87 15.87 19 12 19C8.13 19 5 15.87 5 12V11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          <path d="M12 19V22" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button class="send" id="sendBtn" type="button" aria-label="Send question">Send</button>
+    </div>
+  </div>
+    </main>
+  </div>
+
+  <footer id="appFooter" aria-label="GyanSetu watermark">
+    <span class="credit">GyanSetu · Built by Aniket</span>
+  </footer>
+</div>
+
+<dialog class="photo-viewer" id="photoViewer" aria-labelledby="photoViewerTitle" aria-modal="true">
+  <div class="photo-viewer-panel">
+    <div class="photo-viewer-head"><span id="photoViewerTitle">Photo preview</span><button id="photoViewClose" type="button" aria-label="Close photo">×</button></div>
+    <div class="photo-view-stage" id="photoViewStage" tabindex="0" aria-label="Photo preview; scroll to pan after zooming"><img id="viewerPhoto" alt="Full preview of the attached question"></div>
+    <div class="photo-view-tools"><button id="photoZoomOut" type="button" aria-label="Zoom out">−</button><span id="photoZoomLabel" aria-live="polite">100%</span><button id="photoZoomIn" type="button" aria-label="Zoom in">+</button><button id="photoFit" type="button">Fit</button><button id="photoReuse" type="button">Use photo</button></div>
+  </div>
+</dialog>
+<dialog class="onboarding-dialog" id="quickGuide" aria-labelledby="guideTitle" aria-describedby="guideDescription" aria-modal="true">
+  <section class="onboarding-panel">
+    <div class="guide-header"><span id="guideProgress" aria-live="polite"></span><button class="answer-action" id="guideSkip" type="button">Skip</button></div>
+    <h2 id="guideTitle" tabindex="-1"></h2>
+    <p class="guide-description" id="guideDescription"></p>
+    <div class="guide-language" id="guideLanguageGroup">
+      <label id="guideLanguageLabel" for="guideLanguage">Reply language · Jawab ki language</label>
+      <select id="guideLanguage"><option value="auto">Auto · Match my question</option><option value="hinglish">Hinglish · Roman Hindi</option><option value="en">English</option><option value="hi">हिन्दी</option></select>
+      <p class="guide-language-help" id="guideLanguageHelp"></p>
+    </div>
+    <div class="guide-location"><span id="guideIcon" aria-hidden="true"></span><span id="guideLocation"></span></div>
+    <ul class="guide-points" id="guidePoints"></ul>
+    <details class="guide-more" id="guideMore"><summary id="guideMoreLabel">More options</summary><ul class="guide-points" id="guideDetails"></ul></details>
+    <p class="guide-note" id="guideNote"></p>
+    <div class="guide-footer"><button class="answer-action" id="guideBack" type="button">Back</button><button class="guide-next" id="guideNext" type="button">Next</button></div>
+  </section>
+</dialog>
+<dialog class="message-menu-dialog" id="messageMenu" aria-labelledby="messageMenuTitle" aria-modal="true">
+  <section class="message-menu-panel">
+    <div class="message-menu-heading"><h2 id="messageMenuTitle">Message options</h2><button class="header-icon" id="messageMenuClose" type="button" aria-label="Close message options">×</button></div>
+    <div id="messageMenuItems" class="message-menu-items"></div>
+  </section>
+</dialog>
+<script src="/assets/photos.js"></script>
+<script src="/assets/photo-viewer.js"></script>
+<script src="/assets/vendor/marked-18.1.0.js"></script>
+<script src="/assets/answer-renderer.js"></script>
+<script src="/assets/reply-language.js"></script>
+<script src="/assets/onboarding.js"></script>
+<script src="/assets/message-menu.js"></script>
+<script>
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('input');
+  const sendBtn = document.getElementById('sendBtn');
+  const subjectsEl = document.getElementById('subjects');
+  const suggestionsEl = document.getElementById('suggestions');
+  const micBtn = document.getElementById('micBtn');
+  const attachBtn = document.getElementById('attachBtn');
+  const fileInput = document.getElementById('fileInput');
+  const cameraBtn = document.getElementById('cameraBtn');
+  const cameraInput = document.getElementById('cameraInput');
+  const previewRow = document.getElementById('previewRow');
+  const previewThumb = document.getElementById('previewThumb');
+  const previewRemove = document.getElementById('previewRemove');
+  const newChatBtn = document.getElementById('newChatBtn');
+  const sessionListEl = document.getElementById('sessionList');
+  const sessionToggle = document.getElementById('sessionToggle');
+  const sessionsWrap = document.getElementById('sessionsWrap');
+  const sessionCount = document.getElementById('sessionCount');
+  const sessionClose = document.getElementById('sessionClose');
+  const learnModeBtn = document.getElementById('learnModeBtn');
+  const examModeBtn = document.getElementById('examModeBtn');
+  const learnerLevelEl = document.getElementById('learnerLevel');
+  const learnerCourseEl = document.getElementById('learnerCourse');
+  const replyLanguageEl = document.getElementById('replyLanguage');
+  const learnerSummaryEl = document.getElementById('learnerSummary');
+  const emptyState = document.getElementById('emptyState');
+  const learnerSettings = document.getElementById('learnerSettings');
+  const attachMenu = document.getElementById('attachMenu');
+
+  let currentSubject = 'General';
+  let answerMode = 'learn';
+  const SESSION_KEY = 'gyansetu_sessions_v3';
+  let sessions = [];
+  let currentSessionId = null;
+  let isSending = false;
+  let isListening = false;
+  let recognition = null;
+  let speechGeneration = 0;
+  let attachedImage = null; // { mediaType, base64, dataUrl }
+  let isPreparingImage = false, imageSelection = 0;
+  const photoViewer = window.GyanSetuPhotoViewer.create(image => {
+    imageSelection++; isPreparingImage = false; attachedImage = image;
+    previewThumb.src = image.dataUrl; previewRow.classList.add('active');
+    sendBtn.disabled = isSending; showNotice('Photo dobara attach ho gayi. Apna doubt likho.');
+  });
+  let previousInteractionId = null;
+  let lastUserQuestion = "";
+  let lastBotAnswer = "";
+  let mathQueue = Promise.resolve();
+  let mathLoaderPromise = null;
+  let noticeTimer = null;
+  const messageMenus = window.GyanSetuMessageMenu.create({
+    canMutate: () => !isSending && !isPreparingImage,
+    onSelectText: () => showNotice('Text selection enabled for this message. Select the words you need.', 4500)
+  });
+
+  function showNotice(text, duration = 0) {
+    clearTimeout(noticeTimer);
+    const notice = document.getElementById('appNotice'); notice.textContent = text || ''; notice.hidden = !text;
+    if (text && duration) noticeTimer = setTimeout(() => { notice.textContent = ''; notice.hidden = true; }, duration);
+  }
+  const LEARNER_KEY = 'gyansetu_learner_v1';
+  const quickGuide = window.GyanSetuOnboarding.create({
+    storage: { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) },
+    learnerKey: LEARNER_KEY, sessionKey: SESSION_KEY,
+    getLanguage: () => learnerProfile.language,
+    setLanguage: value => { replyLanguageEl.value = value; updateLearnerPreference(); },
+    canOpen: () => !isSending && !isPreparingImage && !isListening && !document.getElementById('photoViewer').hasAttribute('open'),
+    beforeOpen: () => { closeSessionsPanel(false); closeDisclosure(learnerSettings); closeDisclosure(attachMenu); },
+    onStorageFailure: () => showNotice('Guide dismissed. This browser could not save that choice, so it may appear again after a reload.')
+  });
+  let learnerProfile = loadLearnerPreference();
+  learnerLevelEl.value = learnerProfile.level;
+  learnerCourseEl.value = learnerProfile.course;
+  replyLanguageEl.value = learnerProfile.language;
+  updateLearnerPreference();
+  learnerLevelEl.addEventListener('change', updateLearnerPreference);
+  learnerCourseEl.addEventListener('input', updateLearnerPreference);
+  replyLanguageEl.addEventListener('change', updateLearnerPreference);
+
+  function loadLearnerPreference() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LEARNER_KEY) || '{}');
+      return { level: saved?.level === 'familiar' ? 'familiar' : 'beginner', course: typeof saved?.course === 'string' ? saved.course.slice(0, 80) : '', language: window.GyanSetuLanguage.normalize(saved?.language) };
+    } catch (_) { return { level: 'beginner', course: '', language: 'auto' }; }
+  }
+
+  function updateLearnerPreference() {
+    learnerProfile = { level: learnerLevelEl.value === 'familiar' ? 'familiar' : 'beginner', course: learnerCourseEl.value.trim().slice(0, 80), language: window.GyanSetuLanguage.normalize(replyLanguageEl.value) };
+    try {
+      localStorage.setItem(LEARNER_KEY, JSON.stringify(learnerProfile));
+      learnerSummaryEl.textContent = 'Preferences saved on this device';
+    } catch (_) { learnerSummaryEl.textContent = 'Applied for now. This browser could not save your preferences.'; }
+  }
+
+  function closeDisclosure(panel, restoreFocus = false) {
+    const wasOpen = panel.hasAttribute('open');
+    panel.removeAttribute('open');
+    if (wasOpen && restoreFocus) panel.querySelector('summary')?.focus();
+  }
+  document.getElementById('preferencesClose').addEventListener('click', () => closeDisclosure(learnerSettings, true));
+  document.getElementById('preferencesToggle').addEventListener('click', () => closeDisclosure(attachMenu));
+  document.getElementById('attachMenuToggle').addEventListener('click', () => closeDisclosure(learnerSettings));
+  [learnerSettings, attachMenu].forEach(panel => panel.addEventListener('focusout', e => {
+    if (e.relatedTarget && !panel.contains(e.relatedTarget)) closeDisclosure(panel);
+  }));
+
+  function makeSession(title = 'New chat', subject = 'General') {
+    return {
+      id: 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      title, subject, mode: 'learn', previousInteractionId: null, lastUserQuestion: '', lastBotAnswer: '', messages: [],
+      createdAt: Date.now(), updatedAt: Date.now()
+    };
+  }
+
+  function loadSessions() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || '[]');
+      sessions = Array.isArray(saved) ? saved.filter(x => x && typeof x.id === 'string') : [];
+      sessions.forEach(session => {
+        let question = '';
+        session.messages = (Array.isArray(session.messages) ? session.messages : []).filter(m => m && typeof m.text === 'string');
+        session.messages.forEach((m, i) => {
+          m.id = m.id || session.id + '_m' + i;
+          if (m.role === 'user' && !m.actionKind) question = m.text;
+          if (m.role === 'bot') m.question = m.question || question;
+        });
+      });
+    } catch (_) { sessions = []; }
+    if (!sessions.length) sessions = [makeSession()];
+    currentSessionId = sessions[0].id;
+    syncFromCurrentSession();
+    renderSessionList();
+  }
+
+  function persistSessions() {
+    try {
+      const removed = sessions.slice(8), retained = sessions.slice(0, 8);
+      localStorage.setItem(SESSION_KEY, JSON.stringify(retained));
+      sessions = retained;
+      const ids = unreferencedPhotoIds(removed, retained);
+      if (ids.length) window.GyanSetuPhotos.remove(ids).catch(() => showNotice('Purani photo browser storage se remove nahi ho paayi.'));
+    } catch (e) {
+      showNotice('Chat is browser mein save nahi ho pa rahi. Refresh par naya kaam kho sakta hai.');
+    }
+  }
+
+  function unreferencedPhotoIds(removed, retained) {
+    const ids = list => list.flatMap(s => (s.messages || []).flatMap(m => [m.imageId, m.sourceImageId]).filter(Boolean));
+    const keep = new Set(ids(retained));
+    return [...new Set(ids(removed))].filter(id => !keep.has(id));
+  }
+
+  function getCurrentSession() {
+    return sessions.find(s => s.id === currentSessionId) || sessions[0];
+  }
+
+  function syncFromCurrentSession() {
+    const session = getCurrentSession();
+    if (!session) return;
+    currentSessionId = session.id;
+    currentSubject = session.subject || 'General';
+    answerMode = session.mode || 'learn';
+    previousInteractionId = session.previousInteractionId || null;
+    lastUserQuestion = session.lastUserQuestion || '';
+    lastBotAnswer = session.lastBotAnswer || '';
+    document.querySelectorAll('.chip').forEach(c => {
+      const active = c.dataset.subject === currentSubject;
+      c.classList.toggle('active', active); c.setAttribute('aria-pressed', String(active));
+    });
+    document.getElementById('currentSubjectLabel').textContent = currentSubject === 'General' ? 'All subjects' : currentSubject;
+    learnModeBtn.classList.toggle('active', answerMode === 'learn');
+    examModeBtn.classList.toggle('active', answerMode === 'exam');
+    learnModeBtn.setAttribute('aria-pressed', String(answerMode === 'learn'));
+    examModeBtn.setAttribute('aria-pressed', String(answerMode === 'exam'));
+    document.getElementById('modeHint').textContent = answerMode === 'learn' ? 'Understand the concept' : 'Structure your answer';
+  }
+
+  function renderSessionList() {
+    sessionListEl.innerHTML = '';
+    if (sessionCount) sessionCount.textContent = `${sessions.length} ${sessions.length === 1 ? 'chat' : 'chats'}`;
+    sessions.forEach(session => {
+      const row = document.createElement('div'); row.className = 'session-row';
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'session-item' + (session.id === currentSessionId ? ' active' : '');
+      const dot = document.createElement('span'); dot.className = 'session-dot';
+      const title = document.createElement('span'); title.className = 'session-title'; title.textContent = session.title || 'New chat';
+      btn.append(dot, title); btn.addEventListener('click', () => switchSession(session.id));
+      const menuBtn = document.createElement('button'); menuBtn.type = 'button'; menuBtn.className = 'session-menu-btn'; menuBtn.title = 'Chat options'; menuBtn.setAttribute('aria-label','Chat options'); menuBtn.textContent = '⋮';
+      const menu = document.createElement('div'); menu.className = 'session-menu hidden';
+      const deleteBtn = document.createElement('button'); deleteBtn.type='button'; deleteBtn.className='delete-btn'; deleteBtn.textContent='Delete chat';
+      deleteBtn.addEventListener('click', e => { e.stopPropagation(); menu.classList.add('hidden'); menuBtn.classList.remove('open'); deleteSession(session.id); });
+      menu.appendChild(deleteBtn);
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const wasOpen = !menu.classList.contains('hidden');
+        closeSessionMenus();
+        if (!wasOpen) { menu.classList.remove('hidden'); menuBtn.classList.add('open'); menuBtn.setAttribute('aria-expanded', 'true'); }
+      });
+      row.append(btn, menuBtn, menu); sessionListEl.appendChild(row);
+    });
+  }
+
+  function deleteSession(id) {
+    if (isSending || !sessions.some(s => s.id === id)) return;
+    const deletingCurrent = id === currentSessionId;
+    const retained = sessions.filter(s => s.id !== id);
+    const imageIds = unreferencedPhotoIds(sessions.filter(s => s.id === id), retained);
+    const photoRemoval = window.GyanSetuPhotos.remove(imageIds).catch(() => showNotice('Chat hat gayi, lekin photo browser storage se remove nahi ho paayi.'));
+    sessions = retained;
+    if (!sessions.length) sessions = [makeSession()];
+    if (deletingCurrent) {
+      currentSessionId = sessions[0].id; syncFromCurrentSession(); clearMessages();
+      const session = getCurrentSession();
+      if (session.messages && session.messages.length) session.messages.forEach(m => appendMessage(m.text, m.role, null, false, m.noActions ? 'none' : null, m));
+      else renderEmptyState();
+      renderSuggestions();
+    }
+    persistSessions(); renderSessionList();
+    return photoRemoval;
+  }
+
+  function switchSession(id) {
+    if (isSending || !sessions.some(s => s.id === id)) return;
+    closeSessionsPanel();
+    currentSessionId = id;
+    syncFromCurrentSession();
+    clearMessages();
+    const session = getCurrentSession();
+    if (session.messages && session.messages.length) {
+      session.messages.forEach(m => appendMessage(m.text, m.role, null, false, m.noActions ? 'none' : null, m));
+    } else {
+      renderEmptyState();
+    }
+    renderSuggestions();
+    renderSessionList();
+  }
+
+  function startNewChat({ focus = true } = {}) {
+    if (isSending) return;
+    imageSelection++; isPreparingImage = false; attachedImage = null;
+    previewRow.classList.remove('active'); previewThumb.src = '';
+    inputEl.value = ''; inputEl.style.height = 'auto'; sendBtn.disabled = false; showNotice('');
+    closeSessionsPanel();
+    closeDisclosure(learnerSettings); closeDisclosure(attachMenu);
+    const session = makeSession('New chat', currentSubject);
+    sessions.unshift(session);
+    currentSessionId = session.id;
+    syncFromCurrentSession();
+    clearMessages();
+    renderEmptyState();
+    renderSuggestions();
+    renderSessionList();
+    persistSessions();
+    if (focus) inputEl.focus();
+  }
+
+  function saveConversationMessage(role, text, hasImage = false, metadata = {}) {
+    const session = getCurrentSession();
+    if (!session || !text) return;
+    session.messages = Array.isArray(session.messages) ? session.messages : [];
+    const message = { ...metadata, id: metadata.id || 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), role, text, hasImage: !!hasImage };
+    session.messages.push(message);
+    if (role === 'user' && (session.title === 'New chat' || !session.title)) {
+      session.title = String(text).replace(/\s+/g, ' ').trim().slice(0, 36) || 'New chat';
+    }
+    session.updatedAt = Date.now();
+    session.subject = currentSubject;
+    session.mode = answerMode;
+    session.previousInteractionId = previousInteractionId;
+    session.lastUserQuestion = lastUserQuestion;
+    session.lastBotAnswer = lastBotAnswer;
+    persistSessions();
+    renderSessionList();
+    return message;
+  }
+
+  const SUGGESTIONS = {
+    General: [
+      ['Understand a concept', 'Machine learning kya hai? Ek everyday example se samjhao.'],
+      ['Work through a problem', '2x + 3 = 11 ko har step ke reason ke saath solve karo.']
+    ],
+    Mathematics: [
+      ['What does a derivative tell us?', 'Derivative ka meaning aur uska formula ek simple example se samjhao.'],
+      ['Work with matrices', '2 by 2 matrix ka determinant kaise aur kyun nikalte hain?']
+    ],
+    Physics: [
+      ['Understand force and motion', 'F = ma ka meaning, har symbol aur units example se samjhao.'],
+      ['How does a semiconductor work?', 'Semiconductor kaise kaam karta hai? Zaroori basics se samjhao.']
+    ],
+    Chemistry: [
+      ['Explore green chemistry', 'Green chemistry kya hai? Ek accurate practical example do.'],
+      ['Inside a lithium-ion battery', 'Lithium-ion battery mein charging aur discharging kaise hoti hai?']
+    ],
+    Programming: [
+      ['Trace a loop, line by line', 'Python for loop ek chhote example ka dry run karke samjhao.'],
+      ['Understand binary search', 'Binary search kaise kaam karta hai aur sorted data kyun chahiye?']
+    ]
+  };
+
+  function renderSuggestions() {
+    suggestionsEl.innerHTML = '';
+    const examples = SUGGESTIONS[currentSubject] || SUGGESTIONS.General;
+    examples.forEach(([title, question]) => {
+      const button = document.createElement('button');
+      button.className = 'suggestion-chip'; button.type = 'button';
+      const label = document.createElement('span'); label.textContent = title;
+      const arrow = document.createElement('span'); arrow.className = 'suggestion-arrow';
+      arrow.textContent = '↗'; arrow.setAttribute('aria-hidden', 'true');
+      button.append(label, arrow);
+      button.addEventListener('click', () => {
+        inputEl.value = question; inputEl.dispatchEvent(new Event('input')); inputEl.focus();
+      });
+      suggestionsEl.appendChild(button);
+    });
+  }
+  renderSuggestions();
+
+  /* ---------- Voice input ---------- */
+  const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (SpeechRecognitionAPI) {
+    recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'en-IN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      const transcript = event.results?.[0]?.[0]?.transcript || '';
+      if (transcript) {
+        inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + transcript;
+        inputEl.dispatchEvent(new Event('input'));
+        inputEl.focus();
+      }
+    };
+    recognition.onerror = () => {
+      stopListening();
+      micBtn.title = 'Voice input unavailable — browser permission/support check karo';
+      showNotice('Mic use nahi ho paaya. Browser ki microphone permission check karo, ya doubt type karo.');
+    };
+    recognition.onend = () => { stopListening(); };
+
+    micBtn.addEventListener('click', () => {
+      if (isListening) {
+        recognition.stop();
+        stopListening();
+      } else {
+        try {
+          recognition.start();
+          isListening = true;
+          micBtn.classList.add('listening');
+          micBtn.title = 'Listening... dobara tap karke stop karo';
+        } catch (e) {
+          stopListening();
+        }
+      }
+    });
+  } else {
+    // Keep the voice button visible so the feature is discoverable even on unsupported browsers.
+    micBtn.addEventListener('click', () => {
+      appendMessage('Is browser mein voice input available nahi hai. Chrome ya Edge ke latest version mein try karo aur microphone permission allow karo.', 'error');
+    });
+    micBtn.title = 'Voice input';
+  }
+
+  function stopListening() {
+    isListening = false;
+    micBtn.classList.remove('listening');
+    micBtn.title = 'Bolke doubt poocho';
+  }
+
+  /* ---------- Answer text-to-speech ---------- */
+  function cleanSpeechText(text) {
+    return String(text || '')
+      .replace(/@@ANSWER@@|@@DETAILS@@|@@TIP@@/g, ' ')
+      .replace(/[*_`#>]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function stopSpeech() {
+    speechGeneration++;
+    window.speechSynthesis?.cancel();
+    document.querySelectorAll('.speak-action').forEach(b => {
+      b.classList.remove('speaking'); b.textContent = 'Listen'; b.dataset.wasSpeaking = '0';
+    });
+  }
+
+  function toggleSpeech(text, button) {
+    if (!('speechSynthesis' in window)) {
+      appendMessage('Is browser mein answer sunane wala voice feature available nahi hai.', 'error');
+      return;
+    }
+    const speechText = cleanSpeechText(text);
+    if (!speechText) return;
+
+    const wasSpeaking = button.classList.contains('speaking');
+    stopSpeech();
+    if (wasSpeaking) return;
+    const generation = speechGeneration;
+
+    const utterance = new SpeechSynthesisUtterance(speechText);
+    utterance.lang = /[\u0900-\u097F]/.test(speechText) ? 'hi-IN' : 'en-IN';
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+    button.dataset.wasSpeaking = '1';
+    button.classList.add('speaking');
+    button.textContent = 'Stop';
+    utterance.onend = () => {
+      if (generation !== speechGeneration) return;
+      button.classList.remove('speaking');
+      button.textContent = 'Listen';
+      button.dataset.wasSpeaking = '0';
+    };
+    utterance.onerror = utterance.onend;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  /* ---------- Photo attach ---------- */
+  async function handleImageFile(file) {
+    if (!file) return;
+    const selection = ++imageSelection;
+    isPreparingImage = true; sendBtn.disabled = true;
+    showNotice('Photo prepare ho rahi hai…');
+    try {
+      const prepared = await window.GyanSetuPhotos.prepare(file);
+      if (selection !== imageSelection) return;
+      attachedImage = prepared; previewThumb.src = prepared.dataUrl;
+      previewRow.classList.add('active');
+      showNotice('Photo ready. Tap karke check karo ki handwriting saaf dikh rahi hai.');
+    } catch (error) {
+      if (selection === imageSelection) showNotice(error.message || 'Photo prepare nahi ho paayi. Dobara try karo.');
+    } finally {
+      if (selection === imageSelection) { isPreparingImage = false; sendBtn.disabled = isSending; }
+    }
+  }
+
+  document.getElementById('previewOpen').addEventListener('click', e => {
+    if (attachedImage) photoViewer.open(attachedImage.dataUrl, e.currentTarget);
+  });
+
+  attachBtn.addEventListener('click', () => { closeDisclosure(attachMenu, true); fileInput.click(); });
+  cameraBtn.addEventListener('click', () => { closeDisclosure(attachMenu, true); cameraInput.click(); });
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files && fileInput.files[0];
+    fileInput.value = '';
+    handleImageFile(file);
+  });
+
+  cameraInput.addEventListener('change', () => {
+    const file = cameraInput.files && cameraInput.files[0];
+    cameraInput.value = '';
+    handleImageFile(file);
+  });
+
+  previewRemove.addEventListener('click', () => {
+    imageSelection++; isPreparingImage = false; sendBtn.disabled = isSending; showNotice('');
+    attachedImage = null;
+    previewRow.classList.remove('active');
+    previewThumb.src = '';
+  });
+
+  /* ---------- Subject chips ---------- */
+  subjectsEl.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip || isSending) return;
+    const picker = document.getElementById('subjectsSection');
+    closeDisclosure(picker);
+    if (chip.dataset.subject === currentSubject) {
+      if (window.matchMedia('(max-width: 760px)').matches) closeSessionsPanel();
+      else document.getElementById('subjectPickerToggle').focus();
+      return;
+    }
+    currentSubject = chip.dataset.subject;
+    const session = getCurrentSession();
+    if (session && !session.messages.length) {
+      session.subject = currentSubject; syncFromCurrentSession(); persistSessions();
+    } else startNewChat({ focus: false });
+    renderSuggestions();
+    if (window.matchMedia('(max-width: 760px)').matches) closeSessionsPanel();
+    else document.getElementById('subjectPickerToggle').focus();
+  });
+
+  /* ---------- Input handling ---------- */
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  });
+
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  const BOT_AVATAR_HTML = '<img src="/assets/logo.png" alt="GyanSetu">';
+
+  function formatBotText(text) {
+    // Protect valid maths BEFORE repairing old answers: never nest delimiters.
+    const maths = [];
+    let value = String(text || '')
+      .replace(/\\\[\s*\\\(([\s\S]*?)\\\)\s*\\\]/g, '\\[$1\\]')
+      .replace(/\\\(\s*\\\[([\s\S]*?)\\\]\s*\\\)/g, '\\[$1\\]')
+      .replace(/\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$|\$[^\n$]+\$/g, m => {
+      maths.push(m);
+      return '\uE000MATH' + (maths.length - 1) + '\uE001';
+    });
+    value = value.replace(/\\begin\{([^}]+)\}[\s\S]*?\\end\{\1\}/g, m => {
+      maths.push('\\[' + m + '\\]');
+      return '\uE000MATH' + (maths.length - 1) + '\uE001';
+    });
+    value = value.split('\n').map(line => {
+      const t = line.trim();
+      // Only repair standalone expressions; prose containing raw TeX stays readable.
+      if (!t || t.includes('\uE000') || /\$/.test(t)) return line;
+      if (/^(?:\\|[A-Za-z]\s*=)/.test(t) && /\\(?:frac|sqrt|int|sum|partial)\b/.test(t)
+          && !/[A-Za-z]{3,}\s+[A-Za-z]{3,}/.test(t.replace(/\\[A-Za-z]+/g, ''))) return '\\[' + t + '\\]';
+      return line;
+    }).join('\n');
+    return value.replace(/\uE000MATH(\d+)\uE001/g, (_, i) => maths[Number(i)]);
+  }
+
+  function renderAnswerText(container, text) {
+    window.GyanSetuAnswer.render(container, text);
+  }
+
+  function typesetMath(root) {
+    if (!root.isConnected || !root.querySelector('.answer-math')) return Promise.resolve();
+    if (!mathLoaderPromise) {
+      mathLoaderPromise = typeof window.MathJax?.typesetPromise === 'function'
+        ? Promise.resolve(window.MathJax)
+        : new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js'; script.async = true;
+          script.onload = () => resolve(window.MathJax);
+          script.onerror = () => { script.remove(); mathLoaderPromise = null; reject(new Error('Math display unavailable')); };
+          document.head.appendChild(script);
+        });
+    }
+    return mathLoaderPromise.then(mj => {
+      mathQueue = mathQueue.catch(() => {}).then(() => mj.startup?.promise)
+        .then(() => root.isConnected && typeof mj.typesetPromise === 'function' ? mj.typesetPromise([root]) : null);
+      return mathQueue;
+    }).catch(() => {}); // Raw notation remains readable if the CDN is unavailable.
+  }
+
+  function clearMessages() {
+    messageMenus.close(false);
+    stopSpeech();
+    if (typeof window.MathJax?.typesetClear === 'function') window.MathJax.typesetClear([messagesEl]);
+    messagesEl.innerHTML = '';
+    messagesEl.classList.remove('empty-conversation');
+  }
+
+  function renderEmptyState() {
+    messagesEl.appendChild(emptyState);
+    messagesEl.classList.add('empty-conversation');
+    document.getElementById('appRoot').classList.remove('has-conversation');
+  }
+
+  function parseStructuredAnswer(rawText) {
+    const text = String(rawText || '');
+    const answerMatch = text.match(/@@ANSWER@@([\s\S]*?)(?=@@DETAILS@@|@@TIP@@|$)/);
+    const detailsMatch = text.match(/@@DETAILS@@([\s\S]*?)(?=@@TIP@@|$)/);
+    const tipMatch = text.match(/@@TIP@@([\s\S]*)$/);
+
+    return {
+      hasStructure: !!(answerMatch || detailsMatch),
+      answer: answerMatch ? answerMatch[1].trim() : '',
+      details: detailsMatch ? detailsMatch[1].trim() : '',
+      tip: tipMatch ? tipMatch[1].trim() : ''
+    };
+  }
+
+  function actionButton(label, onClick, primary = false) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'answer-action' + (primary ? ' primary-action' : '');
+    button.textContent = label; button.addEventListener('click', onClick); return button;
+  }
+
+  function selectedExcerpt(bubble) {
+    const selection = window.getSelection?.();
+    if (!selection || selection.isCollapsed || !bubble.contains(selection.anchorNode) || !bubble.contains(selection.focusNode)) return '';
+    return String(selection).trim().slice(0, 2000);
+  }
+
+  function addStepControl(actions, bubble, target) {
+    const panel = document.createElement('div'); panel.className = 'learning-inline'; panel.hidden = true;
+    const label = document.createElement('label'); label.textContent = 'Which step would you like to understand?';
+    const field = document.createElement('textarea'); field.rows = 2; field.maxLength = 2000;
+    field.id = 'step_' + target.id; label.htmlFor = field.id;
+    field.setAttribute('aria-label', 'Step to explain');
+    field.placeholder = 'Select a line in the answer, or paste it here…';
+    const error = document.createElement('span'); error.className = 'learning-error'; error.setAttribute('role', 'status');
+    const submit = actionButton('Explain step', async () => {
+      if (isSending) return;
+      const selectedStep = field.value.trim();
+      if (!selectedStep) { error.textContent = 'Enter a line or formula first.'; field.focus(); return; }
+      error.textContent = ''; submit.disabled = true;
+      try {
+        const ok = await sendMessage({ overrideText: 'Yeh step kyun?\n' + selectedStep,
+          action: { kind: 'step', question: target.question, answer: target.answer, selectedStep, language: target.language }, targetId: target.id });
+        if (ok) { panel.hidden = true; open.setAttribute('aria-expanded', 'false'); }
+      } finally { submit.disabled = false; }
+    }, true);
+    panel.append(label, field, submit, error);
+    let selectionBeforeClick = '';
+    const open = actionButton('Explain a step', () => {
+      panel.hidden = !panel.hidden; open.setAttribute('aria-expanded', String(!panel.hidden));
+      if (!panel.hidden) { const selected = selectionBeforeClick || selectedExcerpt(bubble); if (selected) field.value = selected; field.focus(); }
+      selectionBeforeClick = '';
+    });
+    open.setAttribute('aria-expanded', 'false'); open.setAttribute('aria-controls', field.id + '_panel'); panel.id = field.id + '_panel';
+    open.captureSelection = () => { selectionBeforeClick = selectedExcerpt(bubble); };
+    open.addEventListener('pointerdown', open.captureSelection);
+    actions.appendChild(open); bubble.appendChild(panel);
+  }
+
+  function renderPracticeControls(bubble, record) {
+    const practice = record.practice;
+    const panel = document.createElement('div'); panel.className = 'learning-inline practice-controls';
+    const label = document.createElement('label'); label.textContent = 'Your answer and working';
+    const field = document.createElement('textarea'); field.rows = 3; field.maxLength = 4000;
+    field.id = 'attempt_' + record.id; label.htmlFor = field.id;
+    field.setAttribute('aria-label', 'Practice answer'); field.placeholder = 'Show how you worked it out…'; field.value = practice.draft || '';
+    field.addEventListener('input', () => { practice.draft = field.value.slice(0, 4000); persistSessions(); });
+    const error = document.createElement('span'); error.className = 'learning-error'; error.setAttribute('role', 'status');
+    const status = document.createElement('span'); status.className = 'practice-status'; status.setAttribute('aria-live', 'polite');
+    status.textContent = practiceStatus(practice);
+    const actions = document.createElement('div'); actions.className = 'answer-actions';
+    const submit = actionButton('Check answer', async () => {
+      if (isSending) return;
+      const attempt = field.value.trim();
+      if (!attempt) { error.textContent = 'Add your attempt first.'; field.focus(); return; }
+      error.textContent = ''; submit.disabled = true;
+      try { await sendPracticeAction('check_practice', record, attempt); }
+      finally { submit.disabled = false; }
+    }, true);
+    const solution = actionButton('Show solution', () => sendPracticeAction('solve_practice', record));
+    actions.append(submit, solution);
+    const hint = document.createElement('span'); hint.className = 'learning-hint'; hint.textContent = 'Use the feedback to improve your answer and try again.';
+    panel.append(label, field, actions, status, hint, error); bubble.appendChild(panel);
+  }
+
+  function practiceStatus(practice) {
+    const count = Array.isArray(practice.attempts) ? practice.attempts.length : 0;
+    return (count ? count + ' attempt' + (count > 1 ? 's' : '') + ' reviewed.' : 'Try it yourself first.') + (practice.solutionViewed ? ' Solution viewed.' : '');
+  }
+
+  async function sendPracticeAction(kind, record, attempt = '') {
+    if (isSending) return;
+    const p = record.practice;
+    return sendMessage({ overrideText: kind === 'check_practice' ? 'Mera practice attempt:\n' + attempt : 'Is practice question ka poora solution samjhao.',
+      action: { kind, question: p.sourceQuestion, answer: p.sourceAnswer, practiceQuestion: p.question, attempt, language: record.responseLanguage }, targetId: record.id });
+  }
+
+  function recordPracticeResult(id, action, feedback) {
+    const source = getCurrentSession()?.messages?.find(m => m.id === id);
+    if (!source?.practice) return;
+    if (action.kind === 'check_practice') {
+      source.practice.attempts = Array.isArray(source.practice.attempts) ? source.practice.attempts : [];
+      source.practice.attempts.push({ attempt: action.attempt, feedback, at: Date.now() });
+      source.practice.attempts = source.practice.attempts.slice(-10);
+      source.practice.draft = action.attempt;
+    } else if (action.kind === 'solve_practice') source.practice.solutionViewed = true;
+    const row = Array.from(messagesEl.querySelectorAll('.msg-row')).find(r => r.dataset.messageId === id);
+    const status = row?.querySelector('.practice-status'); if (status) status.textContent = practiceStatus(source.practice);
+    persistSessions();
+  }
+
+  async function readSavedPhoto(id) {
+    let timer;
+    try {
+      const value = await Promise.race([
+        window.GyanSetuPhotos.get(id),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Photo lookup timed out')), 5000); })
+      ]);
+      return window.GyanSetuPhotos.parse(value);
+    } catch (_) { return null; }
+    finally { clearTimeout(timer); }
+  }
+
+  async function copyMessage(text, button, bubble) {
+    if (button.disabled) return;
+    button.disabled = true;
+    try {
+      if (!window.navigator?.clipboard?.writeText) throw new Error('Manual copy required');
+      await window.navigator.clipboard.writeText(text);
+      button.textContent = 'Copied';
+      showNotice('Copied to clipboard.', 2500);
+      setTimeout(() => { if (button.isConnected) button.textContent = 'Copy'; }, 2000);
+    } catch (_) {
+      let panel = bubble.querySelector('.copy-panel');
+      if (!panel) {
+        panel = document.createElement('div'); panel.className = 'learning-inline copy-panel';
+        const hint = document.createElement('span'); hint.className = 'learning-hint';
+        hint.textContent = 'Automatic copy is unavailable. Select this text and use your device’s Copy option.';
+        const field = document.createElement('textarea'); field.readOnly = true; field.rows = 4;
+        field.setAttribute('aria-label', 'Message text to copy'); field.value = text;
+        const close = actionButton('Close', () => { panel.remove(); (bubble.querySelector('.message-more') || button).focus(); });
+        panel.append(hint, field, close); bubble.appendChild(panel);
+      }
+      const field = panel.querySelector('textarea'); field.focus(); field.select?.();
+    } finally { button.disabled = false; }
+  }
+
+  async function editQuestion(sessionId, messageId, value) {
+    if (isSending || isPreparingImage) return { error: 'Wait for the current request or photo to finish.' };
+    const source = getCurrentSession();
+    const index = source?.messages?.findIndex(m => m.id === messageId);
+    if (source?.id !== sessionId || index == null || index < 0) return { error: 'Open this question’s chat to edit it.' };
+    const original = source.messages[index], text = String(value || '').trim();
+    if (original.role !== 'user' || original.actionKind) return { error: 'Only your own questions can be edited.' };
+    if (!text || text.length > 10000) return { error: 'Enter a question of 1–10,000 characters.' };
+    if (text === original.text.trim()) return { error: 'Change the question before sending.' };
+    let photo = null;
+    // Do not create a branch or lose the original image if browser storage is unavailable.
+    isSending = true; sendBtn.disabled = true;
+    try {
+      if (original.hasImage || original.imageId) {
+        photo = await readSavedPhoto(original.imageId);
+        if (!photo) return { error: 'This photo is no longer saved here. Attach it again in a new message.' };
+      }
+    } finally { isSending = false; sendBtn.disabled = isPreparingImage; }
+    const branch = makeSession(text.slice(0, 36) + ' · edited', source.subject);
+    branch.mode = source.mode;
+    branch.messages = JSON.parse(JSON.stringify(source.messages.slice(0, index)));
+    // Later practice attempts and simplification counts must not leak backwards into the branch.
+    branch.messages.forEach(m => {
+      m.simplerLevel = 0;
+      if (m.practice) { m.practice.attempts = []; m.practice.draft = ''; m.practice.solutionViewed = false; }
+    });
+    const lastAnswer = branch.messages.findLast(m => m.role === 'bot' && !m.failed && !m.noActions);
+    branch.lastUserQuestion = lastAnswer?.question || branch.messages.findLast(m => m.role === 'user' && !m.actionKind)?.text || '';
+    branch.lastBotAnswer = lastAnswer?.text || '';
+    // Retain the source even when the existing eight-chat storage limit is reached.
+    sessions = [branch, source, ...sessions.filter(s => s.id !== source.id)];
+    switchSession(branch.id); persistSessions(); renderSessionList();
+    showNotice('Edited chat created. The original is in Chats.', 4500);
+    await sendMessage({ overrideText: text, overrideImage: photo, preserveComposer: true, retryQuestion: text });
+    return { edited: true };
+  }
+
+  function addMessageTools(bubble, record, text, role, questionText) {
+    let actions = !record.practice && bubble.querySelector('.answer-actions');
+    if (!actions) {
+      actions = document.createElement('div'); actions.className = 'answer-actions message-tools';
+      bubble.appendChild(actions);
+    }
+    const copy = actionButton('Copy', () => copyMessage(text, copy, bubble));
+    copy.classList.add('copy-action'); copy.setAttribute('aria-label', role === 'bot' ? 'Copy answer' : 'Copy question');
+    copy.setAttribute('aria-live', 'polite'); actions.appendChild(copy);
+    if (role !== 'user' || record.actionKind || !record.id) return actions;
+    const sessionId = currentSessionId;
+    let panel;
+    const openEditor = () => {
+      if (isSending || isPreparingImage) return;
+      if (panel?.isConnected) { panel.querySelector('textarea').focus(); return; }
+      panel = document.createElement('div'); panel.className = 'learning-inline edit-panel';
+      panel.id = 'edit_panel_' + record.id; bubble.classList.add('editing'); edit.setAttribute('aria-expanded', 'true');
+      const label = document.createElement('label'); label.textContent = 'Edit question';
+      const field = document.createElement('textarea'); field.rows = 3; field.maxLength = 10000;
+      field.id = 'edit_' + record.id; field.value = text; label.htmlFor = field.id;
+      const hint = document.createElement('span'); hint.className = 'learning-hint';
+      hint.textContent = 'Creates an edited chat. The original stays in Chats. Any attached photo is kept.';
+      const error = document.createElement('span'); error.className = 'learning-error'; error.setAttribute('role', 'status');
+      const controls = document.createElement('div'); controls.className = 'answer-actions';
+      const save = actionButton('Save & resend', async () => {
+        if (save.disabled) return;
+        save.disabled = true; cancel.disabled = true; field.disabled = true; error.textContent = '';
+        try {
+          const result = await editQuestion(sessionId, record.id, field.value);
+          if (result.error) error.textContent = result.error;
+        } finally { save.disabled = false; cancel.disabled = false; field.disabled = false; }
+      }, true);
+      const close = () => {
+        if (!save.disabled) { panel.remove(); bubble.classList.remove('editing'); edit.setAttribute('aria-expanded', 'false'); (bubble.querySelector('.message-more') || edit).focus(); }
+      };
+      const cancel = actionButton('Cancel', close);
+      field.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } });
+      controls.append(save, cancel); panel.append(label, field, hint, controls, error); bubble.appendChild(panel); field.focus();
+    };
+    const edit = actionButton('Edit', openEditor); edit.classList.add('edit-action');
+    edit.setAttribute('aria-label', 'Edit question'); edit.setAttribute('aria-expanded', 'false');
+    edit.setAttribute('aria-controls', 'edit_panel_' + record.id); actions.appendChild(edit);
+    return actions;
+  }
+
+  function appendMessage(text, role, imageUrl, persist = true, actionFor = null, metadata = {}) {
+    emptyState.remove(); messagesEl.classList.remove('empty-conversation');
+    const record = persist && (role === 'user' || role === 'bot')
+      ? saveConversationMessage(role, text, !!imageUrl, metadata) || metadata : metadata;
+    const target = { id: record.id, answer: text, question: record.question || lastUserQuestion, level: record.simplerLevel || 0, language: record.responseLanguage };
+
+    const wasAtBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 160;
+    const row = document.createElement('div');
+    row.className = 'msg-row ' + role;
+
+    let avatar = null;
+    if (role === 'bot' || role === 'error') {
+      avatar = document.createElement('div');
+      avatar.className = 'avatar bot';
+      avatar.innerHTML = BOT_AVATAR_HTML;
+    }
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg ' + role;
+    let questionText = null;
+    if (record.practice) {
+      const title = document.createElement('span'); title.className = 'practice-label'; title.textContent = 'PRACTICE'; bubble.appendChild(title);
+    }
+
+    if (imageUrl || record.imageId || record.hasImage) {
+      const photoButton = document.createElement('button'); photoButton.type = 'button';
+      photoButton.className = 'message-photo'; photoButton.setAttribute('aria-label', 'Open attached photo');
+      const image = document.createElement('img'); image.className = 'attached-photo'; image.alt = 'Attached question';
+      const caption = document.createElement('span'); caption.textContent = 'Loading photo…';
+      photoButton.append(image, caption); photoButton.disabled = true; bubble.appendChild(photoButton);
+      let visiblePhoto = null;
+      const display = value => {
+        if (!photoButton.isConnected) return;
+        if (!window.GyanSetuPhotos.parse(value)) {
+          image.hidden = true; caption.textContent = 'Purani photo yahan save nahi hai. Dobara attach karo.'; return;
+        }
+        visiblePhoto = value; image.src = value; image.hidden = false;
+        caption.textContent = 'View photo ↗'; photoButton.disabled = false;
+      };
+      photoButton.addEventListener('click', () => { if (visiblePhoto) photoViewer.open(visiblePhoto, photoButton); });
+      if (imageUrl) {
+        if (persist) {
+          record.imageId = record.imageId || 'photo_' + record.id;
+          window.GyanSetuPhotos.save(record.imageId, imageUrl).catch(() => showNotice('Photo abhi dikh rahi hai, lekin browser mein save nahi ho paayi. Refresh se pehle original rakh lo.'));
+          persistSessions();
+        }
+        Promise.resolve().then(() => display(imageUrl));
+      } else window.GyanSetuPhotos.get(record.imageId).then(display);
+    }
+
+    if (text) {
+      if (role === 'bot') {
+        const parsed = parseStructuredAnswer(text);
+
+        if (parsed.hasStructure) {
+          bubble.classList.add('answer-card');
+
+          if (parsed.answer) {
+            const headline = document.createElement('div');
+            headline.className = 'answer-headline';
+            renderAnswerText(headline, parsed.answer);
+            bubble.appendChild(headline);
+          }
+
+          if (parsed.details) {
+            if (parsed.answer) {
+              const divider = document.createElement('div');
+              divider.className = 'answer-divider';
+              bubble.appendChild(divider);
+            }
+            const details = document.createElement('div');
+            details.className = 'answer-details';
+            renderAnswerText(details, parsed.details);
+            bubble.appendChild(details);
+          }
+
+          if (parsed.tip) {
+            const tip = document.createElement('div');
+            tip.className = 'answer-tip';
+            const tipIcon = document.createElement('span');
+            tipIcon.className = 'tip-icon';
+            tipIcon.textContent = 'Note';
+            const tipText = document.createElement('div');
+            renderAnswerText(tipText, parsed.tip);
+            tip.appendChild(tipIcon);
+            tip.appendChild(tipText);
+            bubble.appendChild(tip);
+          }
+
+          if (!parsed.answer && !parsed.details && !parsed.tip) {
+            const textNode = document.createElement('div');
+            renderAnswerText(textNode, text);
+            bubble.appendChild(textNode);
+          }
+        } else {
+          const textNode = document.createElement('div');
+          renderAnswerText(textNode, text);
+          bubble.appendChild(textNode);
+        }
+      } else {
+        const textNode = document.createElement('span');
+        textNode.textContent = text;
+        if (role === 'user') { questionText = textNode; textNode.className = 'question-text'; }
+        bubble.appendChild(textNode);
+      }
+    }
+
+    if (role === 'bot' && record.practice) renderPracticeControls(bubble, record);
+    if (role === 'bot' && text && actionFor !== 'none' && !record.practice) {
+      const actions = document.createElement('div');
+      actions.className = 'answer-actions';
+      const simpleBtn = document.createElement('button');
+      simpleBtn.type = 'button';
+      simpleBtn.className = 'answer-action';
+      simpleBtn.textContent = 'Simplify';
+      simpleBtn.addEventListener('click', () => sendSpecialRequest('simpler', target));
+      const revisionBtn = document.createElement('button');
+      revisionBtn.type = 'button';
+      revisionBtn.className = 'answer-action';
+      revisionBtn.textContent = 'Recap';
+      revisionBtn.addEventListener('click', () => sendSpecialRequest('revision', target));
+      const speakBtn = document.createElement('button');
+      speakBtn.type = 'button';
+      speakBtn.className = 'answer-action speak-action';
+      speakBtn.textContent = 'Listen';
+      speakBtn.setAttribute('aria-label', 'Listen to answer');
+      speakBtn.addEventListener('click', () => toggleSpeech(text, speakBtn));
+      actions.append(simpleBtn, revisionBtn, speakBtn);
+      bubble.appendChild(actions);
+      if (record.responseKind !== 'general') {
+        addStepControl(actions, bubble, target);
+        if (!record.truncated) actions.appendChild(actionButton('Practice', () => sendSpecialRequest('practice', target)));
+      }
+      if (record.truncated) {
+        const continueBtn = document.createElement('button');
+        continueBtn.type = 'button'; continueBtn.className = 'answer-action'; continueBtn.textContent = 'Continue answer';
+        continueBtn.addEventListener('click', () => sendSpecialRequest('continue', target));
+        actions.appendChild(continueBtn);
+      }
+    }
+
+    if (text && (role === 'user' || role === 'bot')) {
+      const actions = addMessageTools(bubble, record, text, role, questionText);
+      messageMenus.bind(bubble, actions);
+    }
+
+    if (avatar) row.appendChild(avatar);
+    row.appendChild(bubble);
+    messagesEl.appendChild(row);
+    if (role === 'bot') typesetMath(bubble);
+    document.getElementById('appRoot').classList.toggle('has-conversation', Boolean(getCurrentSession()?.messages?.length));
+    if (role === 'bot' && persist && wasAtBottom && row.getBoundingClientRect) {
+      // Begin a long new answer at its first line; preserve a learner's older reading position.
+      messagesEl.scrollTop += row.getBoundingClientRect().top - messagesEl.getBoundingClientRect().top - 20;
+    } else if (role !== 'bot' || !persist) messagesEl.scrollTop = messagesEl.scrollHeight;
+    row.dataset.messageId = record.id || '';
+    return row;
+  }
+
+  let typingInterval = null;
+
+  function showTyping(actionKind) {
+    const row = document.createElement('div');
+    row.className = 'typing-row';
+    row.id = 'typingIndicator';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar bot';
+    avatar.innerHTML = BOT_AVATAR_HTML;
+
+    const typing = document.createElement('div');
+    typing.className = 'typing';
+    typing.setAttribute('role', 'status');
+    const label = document.createElement('span'); label.className = 'typing-label'; label.id = 'typingLabel';
+    label.textContent = actionKind === 'revision' ? 'Preparing recap…' : 'Preparing answer…';
+    typing.appendChild(label);
+
+    row.appendChild(avatar);
+    row.appendChild(typing);
+    messagesEl.appendChild(row);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+
+  }
+
+  function hideTyping() {
+    if (typingInterval) {
+      clearInterval(typingInterval);
+      typingInterval = null;
+    }
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+  }
+
+  function setAnswerMode(mode) {
+    if (isSending) return;
+    answerMode = mode;
+    learnModeBtn.classList.toggle('active', mode === 'learn');
+    examModeBtn.classList.toggle('active', mode === 'exam');
+    learnModeBtn.setAttribute('aria-pressed', String(mode === 'learn'));
+    examModeBtn.setAttribute('aria-pressed', String(mode === 'exam'));
+    document.getElementById('modeHint').textContent = mode === 'learn' ? 'Understand the concept' : 'Structure your answer';
+    const session = getCurrentSession();
+    if (session) { session.mode = mode; session.updatedAt = Date.now(); persistSessions(); }
+  }
+
+  learnModeBtn.addEventListener('click', () => setAnswerMode('learn'));
+  examModeBtn.addEventListener('click', () => setAnswerMode('exam'));
+  newChatBtn.addEventListener('click', startNewChat);
+  document.getElementById('quickNewChatBtn').addEventListener('click', startNewChat);
+  function closeSessionMenus() {
+    document.querySelectorAll('.session-menu').forEach(m => m.classList.add('hidden'));
+    document.querySelectorAll('.session-menu-btn').forEach(b => { b.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); });
+  }
+  function setDrawerBackground(inert) {
+    ['appHeader', 'chatPanel', 'appFooter'].forEach(id => {
+      const node = document.getElementById(id); if (node) node.inert = inert;
+    });
+  }
+  function closeSessionsPanel(restoreFocus = true) {
+    const wasOpen = sessionsWrap?.classList.contains('open');
+    sessionsWrap?.classList.remove('open');
+    sessionToggle?.setAttribute('aria-expanded', 'false');
+    document.getElementById('sessionBackdrop').hidden = true;
+    setDrawerBackground(false);
+    sessionsWrap?.setAttribute('aria-modal', 'false');
+    sessionsWrap?.setAttribute('role', 'complementary');
+    sessionsWrap?.setAttribute('aria-hidden', window.matchMedia('(max-width: 760px)').matches ? 'true' : 'false');
+    closeDisclosure(document.getElementById('subjectsSection'));
+    closeSessionMenus();
+    if (wasOpen && restoreFocus) sessionToggle?.focus();
+  }
+  function openSessionsPanel() {
+    if (!window.matchMedia('(max-width: 760px)').matches) return;
+    closeDisclosure(learnerSettings); closeDisclosure(attachMenu);
+    sessionsWrap.classList.add('open'); sessionToggle.setAttribute('aria-expanded', 'true');
+    sessionsWrap.setAttribute('role', 'dialog'); sessionsWrap.setAttribute('aria-modal', 'true');
+    sessionsWrap.setAttribute('aria-hidden', 'false');
+    document.getElementById('sessionBackdrop').hidden = false;
+    setDrawerBackground(true); sessionClose.focus();
+  }
+  if (sessionToggle) {
+    sessionToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (sessionsWrap?.classList.contains('open')) closeSessionsPanel(); else openSessionsPanel();
+    });
+  }
+  if (sessionClose) sessionClose.addEventListener('click', (e) => { e.stopPropagation(); closeSessionsPanel(); });
+  document.getElementById('sessionBackdrop').addEventListener('click', () => closeSessionsPanel());
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && (learnerSettings.hasAttribute('open') || attachMenu.hasAttribute('open'))) {
+      e.preventDefault(); closeDisclosure(learnerSettings, true); closeDisclosure(attachMenu, true); return;
+    }
+    if (!sessionsWrap?.classList.contains('open')) {
+      if (e.key === 'Escape') {
+        const picker = document.getElementById('subjectsSection');
+        if (picker.hasAttribute('open')) { e.preventDefault(); closeDisclosure(picker, true); }
+        closeSessionMenus();
+      }
+      return;
+    }
+    if (e.key === 'Escape') { e.preventDefault(); closeSessionsPanel(); }
+    if (e.key === 'Tab') {
+      const buttons = Array.from(sessionsWrap.querySelectorAll('button, summary')).filter(b => {
+        if (b.disabled || b.closest('.hidden')) return false;
+        const disclosure = b.closest('details');
+        return !disclosure || disclosure.hasAttribute('open') || b.tagName === 'SUMMARY';
+      });
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+    }
+  });
+  window.matchMedia('(max-width: 760px)').addEventListener?.('change', () => closeSessionsPanel(false));
+  closeSessionsPanel(false);
+  const updateViewport = () => {
+    if (window.visualViewport) document.documentElement.style.setProperty('--viewport-height', window.visualViewport.height + 'px');
+  };
+  window.visualViewport?.addEventListener('resize', updateViewport); updateViewport();
+  inputEl.addEventListener('focus', () => document.body.classList.add('composing'));
+  inputEl.addEventListener('blur', () => document.body.classList.remove('composing'));
+  document.addEventListener('click', (e) => {
+    if (!learnerSettings.contains(e.target)) closeDisclosure(learnerSettings);
+    if (!attachMenu.contains(e.target)) closeDisclosure(attachMenu);
+    const picker = document.getElementById('subjectsSection');
+    if (!picker.contains(e.target)) closeDisclosure(picker);
+    closeSessionMenus();
+    if (window.matchMedia('(max-width: 760px)').matches && sessionsWrap?.classList.contains('open')) {
+      if (!sessionsWrap.contains(e.target) && !sessionToggle?.contains(e.target)) closeSessionsPanel();
+    }
+  });
+
+  async function sendSpecialRequest(kind, target) {
+    if (isSending || !target?.answer) return;
+    const saved = getCurrentSession()?.messages?.find(m => m.id === target.id);
+    const level = kind === 'simpler' ? Math.min(5, (saved?.simplerLevel || target.level || 0) + 1) : 1;
+    const labels = { simpler: 'Is answer ko aur basic se samjhao.', revision: 'Is answer ka quick revision do.', continue: 'Is answer ko aage complete karo.', practice: 'Is concept ka ek naya practice question do.' };
+    await sendMessage({ overrideText: labels[kind], action: { kind, question: target.question || '', answer: target.answer, level, language: target.language }, targetId: target.id });
+  }
+
+  loadSessions();
+  switchSession(currentSessionId);
+  quickGuide.start();
+
+  function getInstantReply(text) {
+    const normalized = String(text || '').trim().toLowerCase().replace(/[!?.,]+$/g, '');
+    const gratitude = ['thanks', 'thank you', 'dhanyavaad', 'धन्यवाद'].includes(normalized);
+    if (!gratitude && !['hey', 'hi', 'hii', 'hello', 'namaste', 'नमस्ते'].includes(normalized)) return null;
+    const language = window.GyanSetuLanguage.resolve({ question: text, history: getCurrentSession()?.messages || [], preference: learnerProfile.language });
+    if (language === 'auto') return null;
+    return {
+      en: gratitude ? 'You’re welcome. Ask whenever you need a hand.' : 'Hi, I’m GyanSetu. What can I help you with?',
+      hinglish: gratitude ? 'Zaroor. Koi aur sawaal ho toh poochho.' : 'Namaste, main GyanSetu hoon. Kya samajhna chahoge?',
+      hi: gratitude ? 'ज़रूर। कोई और सवाल हो तो पूछिए।' : 'नमस्ते, मैं ज्ञानसेतु हूँ। आप क्या समझना चाहेंगे?'
+    }[language];
+  }
+
+  function isContextFollowUp(text) {
+    const q = String(text || '').trim();
+    if (/^(?:why|how|kyu|kyun|kaise|क्यों|कैसे)[?!.\s]*$/i.test(q)) return true;
+    if (/^(?:(?:(?:mujhe|abhi|ab|bhi|phir|bilkul)\s+)*sam(?:ajh|jh)\s*(?:nahi|nhi|nahin)|(?:nahi|nhi)\s*sam(?:ajh|jh)|(?:(?:मुझे|अभी|भी|फिर|बिल्कुल)\s+)*समझ\s*नहीं|नहीं\s*समझ)/i.test(q)) return true;
+    if (/^(?:i\s+(?:still\s+)?(?:don.t|do not|didn.t|did not)\s+understand|still confused|explain simpler|make (?:it|this|that) simpler)\b/i.test(q)) return true;
+    if (/^(?:ye|yeh|iska|isme|iss|isi|usi)\s|^(?:ये|यह|इसमें|इसका)\s/i.test(q)) return true;
+    if (/^(?:why|how)\b/i.test(q)) return /\b(?:this|that|above|previous|here|step\s*\d+)\b|^(?:why|how)\s+(?:did|have)\s+you\b|^why\s+(?:divide|multiply|subtract|add|cancel|use)\b/i.test(q);
+    return false;
+  }
+
+  async function sendMessage(options = {}) {
+    if (isSending) return;
+    if (isPreparingImage) { showNotice('Photo prepare ho rahi hai. Ready hone par bhejo.'); return; }
+    if (options.retrySessionId && options.retrySessionId !== currentSessionId) return;
+    const isAction = Boolean(options.action || options.retryPayload?.action);
+    const draft = inputEl.value;
+    const imageBefore = options.preserveComposer ? options.overrideImage || null : attachedImage;
+    const text = options.retryPayload?.text || options.overrideText || draft.trim();
+    if (!text && !imageBefore && !options.retryPayload?.image) return;
+    closeDisclosure(learnerSettings); closeDisclosure(attachMenu);
+    const session = getCurrentSession();
+    const sessionId = currentSessionId;
+
+    if (!isAction && !options.retryPayload && !imageBefore && !options.preserveComposer) {
+      const reply = getInstantReply(text);
+      if (reply) {
+        appendMessage(text, 'user');
+        appendMessage(reply, 'bot', null, true, 'none', { noActions: true });
+        inputEl.value = ''; inputEl.style.height = 'auto';
+        inputEl.focus(); return;
+      }
+    }
+
+    // Capture history BEFORE saving the new turn, so the question is sent once.
+    const messages = (session?.messages || []).filter(m => !m.failed).slice(-16)
+      .map(m => ({ role: m.role === 'bot' ? 'assistant' : m.role, content: m.text, hasImage: Boolean(m.hasImage), actionKind: m.actionKind || undefined }));
+    const questionText = text || 'Is photo mein jo question hai, use samjhao.';
+    const followUp = isContextFollowUp(questionText);
+    const referencesPhoto = /^(?:(?:us|usi|same|pichhli|pichli|this|that|previous)\s+(?:photo|image|question)|(?:photo|image)\s+(?:mein|me|se)|in (?:the|this|that) (?:photo|image))\b/i.test(questionText)
+      || (/^(?:nahi|nhi|nahin|actually|correction)\b/i.test(questionText) && /[+=×÷^²³\d]|\b(?:minus|plus|sign|symbol|photo|image|instead)\b/i.test(questionText));
+    const originalQuestion = options.retryQuestion || options.action?.practiceQuestion || options.action?.question || (!imageBefore && (followUp || referencesPhoto) && lastUserQuestion ? lastUserQuestion : questionText);
+    // Lock before asynchronous image retrieval so a double tap cannot submit twice or switch chats.
+    isSending = true; sendBtn.disabled = true;
+    let sourceImageId = options.retrySourceImageId || null, referenceImage = null;
+    if (!options.retryPayload && (isAction || !imageBefore)) {
+      const selected = session?.messages?.find(m => m.id === options.targetId);
+      const lastAnswer = (session?.messages || []).findLast(m => m.role === 'bot' && !m.failed && !m.noActions);
+      if (isAction && ['simpler', 'revision', 'continue', 'step'].includes(options.action?.kind)) sourceImageId = selected?.sourceImageId || null;
+      else if (!isAction && (followUp || referencesPhoto)) sourceImageId = lastAnswer?.sourceImageId || null;
+      if (sourceImageId && options.action?.kind !== 'revision') {
+        referenceImage = await readSavedPhoto(sourceImageId);
+        if (!referenceImage) showNotice('Purani photo available nahi hai. Uski detail chahiye toh dobara attach karo.');
+      }
+    }
+    const requestImage = !isAction && imageBefore ? imageBefore : referenceImage;
+    const payload = options.retryPayload || {
+      subject: currentSubject, text: questionText,
+      image: requestImage ? { mediaType: requestImage.mediaType, base64: requestImage.base64 } : null,
+      imageSource: referenceImage ? 'previous' : 'current',
+      answerMode: ['simpler', 'step', 'practice', 'check_practice', 'solve_practice'].includes(options.action?.kind) ? 'learn' : answerMode,
+      messages: options.action?.kind === 'revision' ? [] : messages, action: options.action || null, learner: { ...learnerProfile },
+    };
+    let userRecord;
+    if (options.retryMessageId) userRecord = session?.messages?.find(m => m.id === options.retryMessageId);
+    else {
+      const row = appendMessage(questionText, 'user', !isAction && imageBefore ? imageBefore.dataUrl : null, true, null,
+        { actionKind: payload.action?.kind || null, question: originalQuestion });
+      userRecord = session?.messages?.find(m => m.id === row.dataset.messageId);
+    }
+    sourceImageId = userRecord?.imageId || sourceImageId;
+    if (userRecord) userRecord.failed = false;
+    // A learning action must not consume a photo/draft waiting in the composer.
+    const consumeComposer = !options.preserveComposer && !isAction && (!options.retryPayload
+      ? inputEl.value === draft && attachedImage === imageBefore
+      : inputEl.value.trim() === payload.text && (!attachedImage || attachedImage.base64 === payload.image?.base64));
+    if (consumeComposer) {
+      inputEl.value = ''; inputEl.style.height = 'auto'; attachedImage = null;
+      previewRow.classList.remove('active'); previewThumb.src = '';
+    }
+    showTyping(payload.action?.kind);
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 40000);
+      let data, response;
+      try {
+        response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal, body: JSON.stringify(payload) });
+        data = await response.json().catch(() => ({}));
+      } finally { clearTimeout(timer); }
+      if (!response.ok || !data.text) {
+        const failure = new Error(data.error || 'Could not complete this reply. You can retry.');
+        const wait = Number(data.retryAfterSeconds);
+        failure.retryAfterSeconds = Number.isFinite(wait) && wait > 0 ? Math.min(86400, Math.ceil(wait)) : 0;
+        throw failure;
+      }
+      if (payload.action?.kind === 'practice' && data.truncated) throw new Error('Practice question adhura aaya. Retry karke naya question lo.');
+      hideTyping();
+      lastUserQuestion = originalQuestion; lastBotAnswer = data.text; previousInteractionId = null;
+      if (payload.action?.kind === 'simpler') {
+        const selected = session?.messages?.find(m => m.id === options.targetId);
+        if (selected) selected.simplerLevel = payload.action.level;
+      }
+      const practice = payload.action?.kind === 'practice' && !data.truncated ? {
+        question: data.text, sourceQuestion: payload.action.question, sourceAnswer: payload.action.answer, attempts: [], draft: '', solutionViewed: false
+      } : null;
+      appendMessage(data.text, 'bot', null, true, null, { question: originalQuestion, practice, sourceImageId,
+        responseLanguage: data.responseLanguage, responseKind: data.responseKind,
+        simplerLevel: payload.action?.kind === 'simpler' ? payload.action.level : 0, truncated: Boolean(data.truncated) });
+      if (data.quality?.remainingFlags?.includes('wrong_script')) showNotice('This answer may not match your chosen language. You can ask again or change Reply language in Preferences.');
+      if (['check_practice', 'solve_practice'].includes(payload.action?.kind)) recordPracticeResult(options.targetId, payload.action, data.text);
+      if (session) {
+        session.previousInteractionId = null; session.lastUserQuestion = originalQuestion; session.lastBotAnswer = data.text;
+        persistSessions();
+      }
+      if (options.retryRow) options.retryRow.remove();
+      return true;
+    } catch (error) {
+      hideTyping();
+      if (userRecord) userRecord.failed = true;
+      persistSessions();
+      const message = error?.name === 'AbortError' ? 'Jawab aane mein zyada samay lag raha hai. Retry karo.' : error.message;
+      const errorRow = appendMessage(message, 'error');
+      const retry = document.createElement('button');
+      retry.type = 'button'; retry.className = 'answer-action'; retry.textContent = 'Retry';
+      if (error.retryAfterSeconds) {
+        const readyAt = Date.now() + error.retryAfterSeconds * 1000;
+        const refreshRetry = () => {
+          if (!errorRow.isConnected) return;
+          const seconds = Math.max(0, Math.ceil((readyAt - Date.now()) / 1000));
+          retry.disabled = seconds > 0;
+          retry.textContent = seconds > 0 ? 'Retry in ' + (seconds >= 60 ? Math.ceil(seconds / 60) + ' min' : seconds + 's') : 'Retry';
+          if (seconds > 0) { const timer = setTimeout(refreshRetry, 1000); timer.unref?.(); }
+        };
+        // The row is already attached. The timer stops if its chat is closed.
+        refreshRetry();
+      }
+      retry.addEventListener('click', () => sendMessage({ retryPayload: payload, retryQuestion: originalQuestion,
+        retryMessageId: userRecord?.id, retrySessionId: sessionId, retrySourceImageId: sourceImageId,
+        preserveComposer: options.preserveComposer, targetId: options.targetId, retryRow: errorRow }));
+      errorRow.querySelector('.msg').appendChild(retry);
+      if (consumeComposer && !inputEl.value && !attachedImage) {
+        inputEl.value = options.retryPayload ? payload.text : draft;
+        if (imageBefore || (payload.image && payload.imageSource !== 'previous')) {
+          attachedImage = imageBefore || { ...payload.image, dataUrl: 'data:' + payload.image.mediaType + ';base64,' + payload.image.base64 };
+          previewThumb.src = attachedImage.dataUrl; previewRow.classList.add('active');
+        }
+      }
+      if (options.retryRow) options.retryRow.remove();
+    } finally {
+      isSending = false; sendBtn.disabled = isPreparingImage;
+    }
+  }
+
+</script>
+</body>
+</html>
