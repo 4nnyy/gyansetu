@@ -6,20 +6,50 @@
 })(typeof window !== 'undefined' ? window : this, function () {
   'use strict';
   const supported = ['auto', 'hinglish', 'en', 'hi'];
-  const normalize = value => supported.includes(value) ? value : 'auto';
-  const prose = text => String(text || '').replace(/```[\s\S]*?(?:```|$)/g, '').replace(/`[^`\n]*`/g, '').replace(/^>.*$/gm, '').replace(/["“][^"”\n]*["”]/g, '');
+  const normalize = (value) => (supported.includes(value) ? value : 'auto');
+  const prose = (text) =>
+    String(text || '')
+      .replace(/```[\s\S]*?(?:```|$)/g, '')
+      .replace(/`[^`\n]*`/g, '')
+      .replace(/^>.*$/gm, '')
+      .replace(/["“][^"”\n]*["”]/g, '');
   function explicit(text) {
     const value = prose(text).toLowerCase();
-    const names = { english: 'en', hindi: 'hi', hinglish: 'hinglish', 'roman hindi': 'hinglish', अंग्रेज़ी: 'en', अंग्रेजी: 'en', हिंदी: 'hi', हिन्दी: 'hi', हिंग्लिश: 'hinglish' };
+    const names = {
+      english: 'en',
+      hindi: 'hi',
+      hinglish: 'hinglish',
+      'roman hindi': 'hinglish',
+      अंग्रेज़ी: 'en',
+      अंग्रेजी: 'en',
+      हिंदी: 'hi',
+      हिन्दी: 'hi',
+      हिंग्लिश: 'hinglish',
+    };
     const candidates = [];
-    const pattern = /\b(?:in|into|use|using|speak)\s+(roman hindi|hinglish|english|hindi|tamil|telugu|marathi|bengali|gujarati|punjabi|urdu|french|spanish|german|arabic|japanese|chinese|kannada|malayalam)\b|\b(roman hindi|hinglish|english|hindi)\s+(?:mein|me|only|please)\b|(हिंदी|हिन्दी|अंग्रेज़ी|अंग्रेजी|हिंग्लिश)\s*में/g;
+    const pattern =
+      /\b(?:in|into|use|using|speak)\s+(roman hindi|hinglish|english|hindi|tamil|telugu|marathi|bengali|gujarati|punjabi|urdu|french|spanish|german|arabic|japanese|chinese|kannada|malayalam)\b|\b(roman hindi|hinglish|english|hindi)\s+(?:mein|me|only|please)\b|(हिंदी|हिन्दी|अंग्रेज़ी|अंग्रेजी|हिंग्लिश)\s*में/g;
     const roman = /\bhindi\s+(?:in|using)\s+(?:roman|english|latin)\s+(?:letters|script)\b/g;
     const romanSpans = [...value.matchAll(roman)];
     for (const match of value.matchAll(pattern)) {
-      if (romanSpans.some(span => match.index >= span.index && match.index < span.index + span[0].length)) continue;
-      candidates.push({ start: match.index, end: match.index + match[0].length, language: names[match[1] || match[2] || match[3]] || 'auto' });
+      if (
+        romanSpans.some(
+          (span) => match.index >= span.index && match.index < span.index + span[0].length
+        )
+      )
+        continue;
+      candidates.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        language: names[match[1] || match[2] || match[3]] || 'auto',
+      });
     }
-    for (const match of romanSpans) candidates.push({ start: match.index, end: match.index + match[0].length, language: 'hinglish' });
+    for (const match of romanSpans)
+      candidates.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        language: 'hinglish',
+      });
     // A language name alone is a control request; a question ABOUT that language is not.
     const alone = value.trim().replace(/[.!?]+$/, '');
     if (names[alone]) candidates.push({ start: 0, end: value.length, language: names[alone] });
@@ -28,13 +58,20 @@
     for (const item of candidates.sort((a, b) => a.start - b.start)) {
       const before = value.slice(Math.max(0, item.start - 30), item.start);
       const after = value.slice(item.end, item.end + 16);
-      if (/(?:not|never|don't|do not|avoid)\s+(?:(?:answer|reply|respond|write)\s+)?$/.test(before) || /^\s+(?:nahi|nhi|mat)\b|^\s*(?:मत|नहीं)/.test(after)) {
-        excluded.add(item.language); continue;
+      if (
+        /(?:not|never|don't|do not|avoid)\s+(?:(?:answer|reply|respond|write)\s+)?$/.test(before) ||
+        /^\s+(?:nahi|nhi|mat)\b|^\s*(?:मत|नहीं)/.test(after)
+      ) {
+        excluded.add(item.language);
+        continue;
       }
       found = item.language;
     }
     if (found !== null) return found;
-    if (excluded.size) { const inferred = detect(value); return inferred && !excluded.has(inferred) ? inferred : 'auto'; }
+    if (excluded.size) {
+      const inferred = detect(value);
+      return inferred && !excluded.has(inferred) ? inferred : 'auto';
+    }
     return null;
   }
   function detect(text) {
@@ -42,15 +79,28 @@
     const letters = (value.match(/\p{L}/gu) || []).length;
     const hindi = (value.match(/[\u0900-\u097f]/g) || []).length;
     if (hindi >= 3 && hindi / Math.max(1, letters) > 0.18) return 'hi';
-    if (/\b(?:mujhe|mera|meri|mere|tumhara|samjhao|samjha|samajh|samjh|batao|btao|kaise|kyun|kyu|nahi|nahin|nhi|kya|hai|hain|hota|hoti|hote|chahiye|dukh|dard|padhai|bhai|yaar|krna|karna|kro|namaste|dhanyavaad)\b/i.test(value)) return 'hinglish';
+    if (
+      /\b(?:mujhe|mera|meri|mere|tumhara|samjhao|samjha|samajh|samjh|batao|btao|kaise|kyun|kyu|nahi|nahin|nhi|kya|hai|hain|hota|hoti|hote|chahiye|dukh|dard|padhai|bhai|yaar|krna|karna|kro|namaste|dhanyavaad)\b/i.test(
+        value
+      )
+    )
+      return 'hinglish';
     const latin = (value.match(/[a-z]/gi) || []).length;
     if (letters - latin - hindi >= 3) return 'auto';
-    if (/^(?:why|how|yes|no|ok|okay|continue|simpler|hi|hii|hey|hello|thanks|thank you|\d[\d\s+*/=?.()\-]*)[.!?\s]*$/i.test(value.trim())) return null;
+    if (
+      /^(?:why|how|yes|no|ok|okay|continue|simpler|hi|hii|hey|hello|thanks|thank you|\d[\d\s+*/=?.()\-]*)[.!?\s]*$/i.test(
+        value.trim()
+      )
+    )
+      return null;
     return latin ? 'en' : null;
   }
   function resolve({ question = '', history = [], action = null, preference = 'auto' } = {}) {
     // Action labels are generated by the UI, not the learner's language choice.
-    if (!action) { const requested = explicit(question); if (requested !== null) return requested; }
+    if (!action) {
+      const requested = explicit(question);
+      if (requested !== null) return requested;
+    }
     const saved = normalize(preference);
     if (saved !== 'auto') return saved;
     if (action) {
@@ -74,19 +124,26 @@
   }
   function instruction(language) {
     return {
-      hinglish: 'Use natural Roman Hinglish: Hindi phrasing written in Latin/English letters, with familiar English technical terms. Do not switch explanations or headings into Devanagari. Keep even the opening and closing in this style.',
+      hinglish:
+        'Use natural Roman Hinglish: Hindi phrasing written in Latin/English letters, with familiar English technical terms. Do not switch explanations or headings into Devanagari. Keep even the opening and closing in this style.',
       en: 'Write the explanation, headings, opening and closing in clear English. Do not switch into Hindi or Hinglish.',
       hi: 'Write the explanation and headings in natural Hindi using Devanagari. Keep useful technical terms, symbols and code unchanged.',
-      auto: 'Follow the language and script explicitly requested by the learner; otherwise match the current question. Do not force English or Hindi onto another language.'
+      auto: 'Follow the language and script explicitly requested by the learner; otherwise match the current question. Do not force English or Hindi onto another language.',
     }[normalize(language)];
   }
   function scriptMismatch(output, language, question = '') {
     // Language/translation lessons may legitimately display more than one script.
-    if (/\b(?:translat\w*|meaning|alphabet|letter|script|pronounc\w*)\b|अनुवाद|अर्थ|लिपि/i.test(question)) return false;
+    if (
+      /\b(?:translat\w*|meaning|alphabet|letter|script|pronounc\w*)\b|अनुवाद|अर्थ|लिपि/i.test(
+        question
+      )
+    )
+      return false;
     const text = prose(output).replace(/\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]/g, '');
     const devanagari = (text.match(/[\u0900-\u097f]/g) || []).length;
     const latin = (text.match(/[a-z]/gi) || []).length;
-    if (['en', 'hinglish'].includes(language)) return devanagari >= 12 && devanagari / Math.max(1, latin + devanagari) > 0.2;
+    if (['en', 'hinglish'].includes(language))
+      return devanagari >= 12 && devanagari / Math.max(1, latin + devanagari) > 0.2;
     return language === 'hi' && latin >= 80 && devanagari < 3;
   }
   return { normalize, resolve, instruction, scriptMismatch };
