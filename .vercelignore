@@ -1,0 +1,10 @@
+tests/
+node_modules/
+README.md
+docs/
+evaluation/
+scripts/
+reports/
+evaluation-results.json
+.env*
+*.log
