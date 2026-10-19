@@ -3,7 +3,9 @@ node_modules/
 README.md
 docs/
 evaluation/
-scripts/
+scripts/*
+!scripts/build.js
+public/
 reports/
 evaluation-results.json
 .env*

@@ -41,7 +41,7 @@ Use the existing Vercel project and connect this repository under **Settings →
 
 Once connected, pushes to `main` deploy to the existing production URL; other branches create previews. Changes must be committed and pushed to GitHub to trigger a deployment. There is no need to delete the project or upload another ZIP.
 
-The app uses the **Other** framework preset, Node.js 24 and the repository root. There is no frontend compilation step. Check the core flows in [Testing](docs/TESTING.md) before releasing a preview.
+The app uses the **Other** framework preset, Node.js 24 and the repository root. `npm run build` copies the interface and assets into `public/`, the only directory served as static files. Server modules stay outside that directory. Check the core flows in [Testing](docs/TESTING.md) before releasing a preview.
 
 ## Project structure
 
