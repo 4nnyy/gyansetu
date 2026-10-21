@@ -1387,6 +1387,7 @@ window.MathJax = {
     if (consumeComposer) {
       inputEl.value = ''; inputEl.style.height = 'auto'; attachedImage = null;
       previewRow.classList.remove('active'); previewThumb.src = '';
+      if (imageBefore) showNotice('');
     }
     showTyping(payload.action?.kind);
     try {
