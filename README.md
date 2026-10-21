@@ -57,7 +57,7 @@ See [Architecture](docs/ARCHITECTURE.md) for request flow and implementation det
 
 ## Status and privacy
 
-Source version: **8.2.5**. The automated suite covers application behaviour using provider mocks; live answer quality and device checks are separate. The latest source still needs a live deployment check.
+Source version: **8.2.5**. The automated suite covers application behaviour using provider mocks; live answer quality and device checks are separate. Run the live checks in [Testing](docs/TESTING.md) before each release.
 
 Chats and photos are stored in the current browser. Relevant questions, context and attached photos are sent to the configured AI service for answers. The app has no account or cross-device sync. Shared usage limits and production monitoring remain to be added before a wider public rollout.
 
