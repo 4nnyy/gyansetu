@@ -16,6 +16,7 @@ const { resolve: resolveLanguage } = require('../assets/reply-language');
 const { recapInstruction } = require('../lib/recap');
 const { retryAfterSeconds, serviceFailure } = require('../lib/service-status');
 const { creatorReply } = require('../lib/identity');
+const { racePhotoProviders } = require('../lib/photo-routing');
 const APP_VERSION = require('../package.json').version;
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -57,13 +58,13 @@ function extractGeminiOutput(data) {
   );
 }
 
-async function fetchJson(url, apiKey, payload, timeoutMs, provider) {
+async function fetchJson(url, apiKey, payload, timeoutMs, provider, signal) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
       method: 'POST',
-      signal: controller.signal,
+      signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...(provider === 'groq'
@@ -95,6 +96,7 @@ async function callGroq({
   concise,
   recap,
   timeoutMs,
+  signal,
 }) {
   const content = [{ type: 'text', text: userText }];
   if (image)
@@ -125,7 +127,8 @@ async function callGroq({
       stream: false,
     },
     timeoutMs,
-    'groq'
+    'groq',
+    signal
   );
   if (!result.ok) return result;
   const output = cleanOutput(result.data?.choices?.[0]?.message?.content);
@@ -148,6 +151,7 @@ async function callGemini({
   image,
   concise,
   timeoutMs,
+  signal,
 }) {
   // Every request carries its own context. Provider switching and expired IDs cannot erase it.
   const context = history.length ? JSON.stringify(history) : legacyContext;
@@ -181,7 +185,8 @@ async function callGemini({
       store: false,
     },
     timeoutMs,
-    'gemini'
+    'gemini',
+    signal
   );
   if (!result.ok) return result;
   const output = extractGeminiOutput(result.data);
@@ -388,6 +393,23 @@ module.exports = async function handler(req, res) {
         retryAt: now + 750 + Math.floor(Math.random() * 251),
       });
     };
+    if (shared.image && gemini.length && groq.length) {
+      const pair = candidates.splice(0, 2);
+      const photoBudget = Math.min(28000, deadline - Date.now());
+      const race = await racePhotoProviders(pair, (candidate, signal) => {
+        const call = candidate.provider === 'groq' ? callGroq : callGemini;
+        return call({ ...shared, ...candidate, signal, timeoutMs: photoBudget });
+      }, (result) => result.ok && Boolean(studentResponse(result).output), { timeoutMs: photoBudget });
+      for (const { candidate, failure } of race.failures) {
+        recordFailure(candidate, failure);
+        console.error('GyanSetu photo provider failure', candidate.provider, candidate.model, failure.status);
+      }
+      if (race.winner) candidates.unshift({
+        ...race.winner.candidate,
+        readyResult: race.winner.result,
+        fallbackUsed: race.winner.fallback,
+      });
+    }
     for (let i = 0; i < candidates.length; i++) {
       const candidate = candidates[i];
       if (disabled.has(candidate.provider) && !candidate.rateRecovery) continue;
@@ -404,7 +426,7 @@ module.exports = async function handler(req, res) {
       if (remaining < (candidate.recovery ? MIN_RECOVERY_BUDGET_MS : 1000)) continue;
       try {
         const call = candidate.provider === 'groq' ? callGroq : callGemini;
-        let result = await call({
+        let result = candidate.readyResult || await call({
           ...shared,
           ...candidate,
           timeoutMs: Math.min(ATTEMPT_TIMEOUT_MS, remaining),
@@ -459,7 +481,7 @@ module.exports = async function handler(req, res) {
               text: result.output,
               interactionId: null,
               model: candidate.model,
-              fallback: i > 0,
+              fallback: Boolean(candidate.fallbackUsed || i > 0),
               truncated: Boolean(result.truncated),
               teachingVersion: TEACHING_VERSION,
               responseLanguage,

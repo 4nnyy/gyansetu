@@ -345,6 +345,31 @@ test('photo requests use high-resolution Gemini input, handwriting reading rules
   }
 });
 
+test('photo backup survives a stalled primary without losing image or conversation context', async () => {
+  const originalTimer = global.setTimeout;
+  global.setTimeout = (fn, ms, ...args) => originalTimer(fn, ms === 5000 ? 5 : ms, ...args);
+  let primarySignal;
+  const image = { mediaType: 'image/png', base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1S8AAAAASUVORK5CYII=' };
+  try {
+    const result = await run({ text: 'Solve the photo', image, messages: [{ role: 'user', content: 'Use fractions' }] }, undefined,
+      async (url, payload, options) => {
+        if (url.includes('googleapis')) {
+          primarySignal = options.signal;
+          return new Promise((resolve, reject) => options.signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))));
+        }
+        assert.equal(payload.messages.at(-1).content[1].image_url.url, 'data:image/png;base64,' + image.base64);
+        assert.equal(payload.messages[1].content, 'Use fractions');
+        return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: '[[GYANSETU:lesson]]\nx = 14' } }] }) };
+      });
+    assert.equal(result.status, 200);
+    assert.equal(result.data.text, 'x = 14');
+    assert.equal(result.data.fallback, true);
+    assert.equal(result.data.responseKind, 'lesson');
+    assert.equal(result.calls.length, 2);
+    assert.equal(primarySignal.aborted, true);
+  } finally { global.setTimeout = originalTimer; }
+});
+
 test('spoofed image bytes, wrong MIME labels and malformed image objects do not reach a provider', async () => {
   for (const image of ['bad', {}, { mediaType: 'image/png', base64: 'aGVsbG8=' }, { mediaType: 'image/svg+xml', base64: 'aGVsbG8=' }]) {
     const result = await run({ text: 'Photo', image });
