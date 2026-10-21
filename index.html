@@ -368,6 +368,15 @@ window.MathJax = {
     document.getElementById('modeHint').textContent = answerMode === 'learn' ? 'Understand the concept' : 'Structure your answer';
   }
 
+  function sessionDisplayTitle(session) {
+    const savedTitle = session.title || 'New chat';
+    const firstQuestion = session.messages?.find(message => message.role === 'user')?.text;
+    if (typeof firstQuestion !== 'string') return savedTitle;
+    const questionTitle = firstQuestion.replace(/\s+/g, ' ').trim();
+    // Older chats store the first 36 characters; use the question for the visible label.
+    return questionTitle && savedTitle === questionTitle.slice(0, 36) ? questionTitle : savedTitle;
+  }
+
   function renderSessionList() {
     sessionListEl.innerHTML = '';
     if (sessionCount) sessionCount.textContent = `${sessions.length} ${sessions.length === 1 ? 'chat' : 'chats'}`;
@@ -375,7 +384,8 @@ window.MathJax = {
       const row = document.createElement('div'); row.className = 'session-row';
       const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'session-item' + (session.id === currentSessionId ? ' active' : '');
       const dot = document.createElement('span'); dot.className = 'session-dot';
-      const title = document.createElement('span'); title.className = 'session-title'; title.textContent = session.title || 'New chat';
+      const title = document.createElement('span'); title.className = 'session-title'; title.textContent = sessionDisplayTitle(session);
+      btn.title = title.textContent;
       btn.append(dot, title); btn.addEventListener('click', () => switchSession(session.id));
       const menuBtn = document.createElement('button'); menuBtn.type = 'button'; menuBtn.className = 'session-menu-btn'; menuBtn.title = 'Chat options'; menuBtn.setAttribute('aria-label','Chat options'); menuBtn.textContent = '⋮';
       const menu = document.createElement('div'); menu.className = 'session-menu hidden';
