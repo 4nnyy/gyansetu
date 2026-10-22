@@ -225,6 +225,7 @@ window.MathJax = {
   let sessions = [];
   let currentSessionId = null;
   let isSending = false;
+  let activeRequest = null;
   let isListening = false;
   let recognition = null;
   let speechGeneration = 0;
@@ -233,7 +234,7 @@ window.MathJax = {
   const photoViewer = window.GyanSetuPhotoViewer.create(image => {
     imageSelection++; isPreparingImage = false; attachedImage = image;
     previewThumb.src = image.dataUrl; previewRow.classList.add('active');
-    sendBtn.disabled = isSending; showNotice('Photo dobara attach ho gayi. Apna doubt likho.');
+    updateSendControl(); showNotice('Photo dobara attach ho gayi. Apna doubt likho.');
   });
   let previousInteractionId = null;
   let lastUserQuestion = "";
@@ -622,7 +623,7 @@ window.MathJax = {
   async function handleImageFile(file) {
     if (!file) return;
     const selection = ++imageSelection;
-    isPreparingImage = true; sendBtn.disabled = true;
+    isPreparingImage = true; updateSendControl();
     showNotice('Photo prepare ho rahi hai…');
     try {
       const prepared = await window.GyanSetuPhotos.prepare(file);
@@ -633,7 +634,7 @@ window.MathJax = {
     } catch (error) {
       if (selection === imageSelection) showNotice(error.message || 'Photo prepare nahi ho paayi. Dobara try karo.');
     } finally {
-      if (selection === imageSelection) { isPreparingImage = false; sendBtn.disabled = isSending; }
+      if (selection === imageSelection) { isPreparingImage = false; updateSendControl(); }
     }
   }
 
@@ -657,7 +658,7 @@ window.MathJax = {
   });
 
   previewRemove.addEventListener('click', () => {
-    imageSelection++; isPreparingImage = false; sendBtn.disabled = isSending; showNotice('');
+    imageSelection++; isPreparingImage = false; updateSendControl(); showNotice('');
     attachedImage = null;
     previewRow.classList.remove('active');
     previewThumb.src = '';
@@ -697,7 +698,23 @@ window.MathJax = {
     }
   });
 
-  sendBtn.addEventListener('click', sendMessage);
+  function updateSendControl() {
+    const canStop = Boolean(activeRequest);
+    sendBtn.classList.toggle('is-stopping', canStop);
+    sendBtn.textContent = canStop ? 'Stop' : 'Send';
+    sendBtn.setAttribute('aria-label', canStop ? 'Stop response' : 'Send question');
+    sendBtn.setAttribute('title', canStop ? 'Stop response' : 'Send question');
+    sendBtn.disabled = canStop ? activeRequest.cancelled : isSending || isPreparingImage;
+  }
+
+  function stopResponse() {
+    if (!activeRequest || activeRequest.cancelled) return;
+    activeRequest.cancelled = true;
+    activeRequest.controller.abort();
+    updateSendControl();
+  }
+
+  sendBtn.addEventListener('click', () => activeRequest ? stopResponse() : sendMessage());
 
   const BOT_AVATAR_HTML = '<img src="/assets/logo.png" alt="GyanSetu">';
 
@@ -1151,9 +1168,27 @@ window.MathJax = {
     return row;
   }
 
-  let typingInterval = null;
+  let typingTimer = null;
 
-  function showTyping(actionKind) {
+  function requestCopy(language) {
+    return ({
+      en: { answer: 'Preparing your answer…', photo: 'Photo received. Preparing your answer…', recap: 'Preparing your recap…',
+        slow: 'Still waiting for the answer. You can stop and edit your question.',
+        stopped: 'Stopped. You can edit your question or try again.', timeout: 'This answer took too long. Your question is still here; try again when ready.',
+        network: 'The connection was interrupted. Check your internet and try again.' },
+      hinglish: { answer: 'Jawab taiyaar ho raha hai…', photo: 'Photo mil gayi. Jawab taiyaar ho raha hai…', recap: 'Recap taiyaar ho raha hai…',
+        slow: 'Jawab ka intezaar hai. Chaho toh stop karke sawaal badal sakte ho.',
+        stopped: 'Rok diya. Sawaal badal sakte ho ya dobara bhej sakte ho.', timeout: 'Is jawab mein zyada waqt lag gaya. Sawaal yahin hai; jab chaho dobara bhejo.',
+        network: 'Connection toot gaya. Internet check karke dobara bhejo.' },
+      hi: { answer: 'जवाब तैयार हो रहा है…', photo: 'फ़ोटो मिल गई। जवाब तैयार हो रहा है…', recap: 'सारांश तैयार हो रहा है…',
+        slow: 'जवाब का इंतज़ार है। चाहें तो रोककर सवाल बदल सकते हैं।',
+        stopped: 'रोक दिया। सवाल बदल सकते हैं या दोबारा भेज सकते हैं।', timeout: 'इस जवाब में ज़्यादा समय लग गया। सवाल यहीं है; जब चाहें दोबारा भेजें।',
+        network: 'कनेक्शन टूट गया। इंटरनेट जाँचकर दोबारा भेजें।' },
+    })[language] || requestCopy('en');
+  }
+
+  function showTyping(payload, copy) {
+    hideTyping();
     const row = document.createElement('div');
     row.className = 'typing-row';
     row.id = 'typingIndicator';
@@ -1166,22 +1201,18 @@ window.MathJax = {
     typing.className = 'typing';
     typing.setAttribute('role', 'status');
     const label = document.createElement('span'); label.className = 'typing-label'; label.id = 'typingLabel';
-    label.textContent = actionKind === 'revision' ? 'Preparing recap…' : 'Preparing answer…';
+    label.textContent = payload.action?.kind === 'revision' ? copy.recap : payload.image ? copy.photo : copy.answer;
     typing.appendChild(label);
 
     row.appendChild(avatar);
     row.appendChild(typing);
     messagesEl.appendChild(row);
     messagesEl.scrollTop = messagesEl.scrollHeight;
-
-
+    typingTimer = setTimeout(() => { if (row.isConnected) label.textContent = copy.slow; }, 12000);
   }
 
   function hideTyping() {
-    if (typingInterval) {
-      clearInterval(typingInterval);
-      typingInterval = null;
-    }
+    clearTimeout(typingTimer); typingTimer = null;
     const el = document.getElementById('typingIndicator');
     if (el) el.remove();
   }
@@ -1389,15 +1420,22 @@ window.MathJax = {
       previewRow.classList.remove('active'); previewThumb.src = '';
       if (imageBefore) showNotice('');
     }
-    showTyping(payload.action?.kind);
+    const copy = requestCopy(window.GyanSetuLanguage.resolve({ question: payload.text, history: payload.messages,
+      action: payload.action, preference: payload.learner.language }));
+    const request = { controller: new AbortController(), cancelled: false };
+    activeRequest = request;
+    updateSendControl();
+    showTyping(payload, copy);
     try {
-      const controller = new AbortController();
+      const controller = request.controller;
       const timer = setTimeout(() => controller.abort(), 40000);
       let data, response;
       try {
         response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal, body: JSON.stringify(payload) });
         data = await response.json().catch(() => ({}));
       } finally { clearTimeout(timer); }
+      // Ignore a response that finished at the same time the learner stopped it.
+      if (controller.signal.aborted) throw Object.assign(new Error('Request aborted'), { name: 'AbortError' });
       if (!response.ok || !data.text) {
         const failure = new Error(data.error || 'Could not complete this reply. You can retry.');
         const wait = Number(data.retryAfterSeconds);
@@ -1429,10 +1467,12 @@ window.MathJax = {
       hideTyping();
       if (userRecord) userRecord.failed = true;
       persistSessions();
-      const message = error?.name === 'AbortError' ? 'Jawab aane mein zyada samay lag raha hai. Retry karo.' : error.message;
+      const message = request.cancelled ? copy.stopped : error?.name === 'AbortError' ? copy.timeout
+        : error?.name === 'TypeError' ? copy.network : error.message;
       const errorRow = appendMessage(message, 'error');
+      errorRow.setAttribute('role', 'status');
       const retry = document.createElement('button');
-      retry.type = 'button'; retry.className = 'answer-action'; retry.textContent = 'Retry';
+      retry.type = 'button'; retry.className = 'answer-action'; retry.textContent = request.cancelled ? 'Try again' : 'Retry';
       if (error.retryAfterSeconds) {
         const readyAt = Date.now() + error.retryAfterSeconds * 1000;
         const refreshRetry = () => {
@@ -1449,7 +1489,7 @@ window.MathJax = {
         retryMessageId: userRecord?.id, retrySessionId: sessionId, retrySourceImageId: sourceImageId,
         preserveComposer: options.preserveComposer, targetId: options.targetId, retryRow: errorRow }));
       errorRow.querySelector('.msg').appendChild(retry);
-      if (consumeComposer && !inputEl.value && !attachedImage) {
+      if (consumeComposer && !inputEl.value && !attachedImage && !isPreparingImage) {
         inputEl.value = options.retryPayload ? payload.text : draft;
         if (imageBefore || (payload.image && payload.imageSource !== 'previous')) {
           attachedImage = imageBefore || { ...payload.image, dataUrl: 'data:' + payload.image.mediaType + ';base64,' + payload.image.base64 };
@@ -1458,7 +1498,7 @@ window.MathJax = {
       }
       if (options.retryRow) options.retryRow.remove();
     } finally {
-      isSending = false; sendBtn.disabled = isPreparingImage;
+      activeRequest = null; isSending = false; updateSendControl();
     }
   }
 
