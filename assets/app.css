@@ -1202,6 +1202,7 @@ button {
 .typing-label {
   font-size: 13px;
   color: var(--text-soft);
+  line-height: 1.6;
 }
 .typing-dots {
   display: flex;
@@ -1491,6 +1492,13 @@ button.send::after {
   content: '↑';
   font-size: 24px;
   font-weight: 500;
+}
+button.send.is-stopping::after {
+  content: '';
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  background: currentColor;
 }
 button.send:hover:not(:disabled) {
   background: #fff;
