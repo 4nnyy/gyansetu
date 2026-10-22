@@ -345,6 +345,26 @@ test('photo requests use high-resolution Gemini input, handwriting reading rules
   }
 });
 
+test('photo support stays truthful with or without an attachment, despite an incorrect earlier reply', async () => {
+  const image = { mediaType: 'image/png', base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1S8AAAAASUVORK5CYII=' };
+  for (const keys of [{ GROQ_API_KEY: 'test-only' }, { GEMINI_API_KEY: 'test-only' }]) {
+    for (const attached of [false, true]) {
+      const result = await run({ text: 'Can you read my handwritten question?', ...(attached ? { image } : {}),
+        messages: [{ role: 'assistant', content: 'I am text-only. You must integrate OCR first.' }] }, keys);
+      const payload = result.calls[0].payload;
+      const policy = payload.system_instruction || payload.messages[0].content;
+      assert.match(policy, /GyanSetu already accepts photos/);
+      assert.match(policy, /Learners do not need to install, code or integrate OCR/);
+      assert.match(policy, /Correct earlier assistant claims/);
+      assert.match(policy, /Explain OCR implementation only when the user explicitly asks/);
+      assert.match(policy, attached ? /Image pixels ARE supplied for this turn/ : /No image pixels are supplied for this turn/);
+      assert.doesNotMatch(policy, attached ? /No image pixels are supplied for this turn/ : /Image pixels ARE supplied for this turn/);
+      const sentImage = payload.input?.find(item => item.type === 'image')?.data || payload.messages?.at(-1)?.content?.find(item => item.type === 'image_url')?.image_url?.url;
+      assert.equal(Boolean(sentImage), attached);
+    }
+  }
+});
+
 test('photo backup survives a stalled primary without losing image or conversation context', async () => {
   const originalTimer = global.setTimeout;
   global.setTimeout = (fn, ms, ...args) => originalTimer(fn, ms === 5000 ? 5 : ms, ...args);
